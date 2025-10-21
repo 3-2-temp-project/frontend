@@ -95,8 +95,8 @@
 /* 챗봇 버튼 */
 .chat-btn {
   position: absolute;
-  bottom: 20px;
-  right: 20px;
+  bottom: 70px;
+  right: 70px;
   background: #0073e6;
   color: white;
   border: none;
@@ -111,10 +111,10 @@
 /* 채팅창 */
 .chat-box {
   position: absolute;
-  right: 90px;
-  bottom: 100px;
+  right: 160px;
+  bottom: 127px;
   width: 360px;
-  height: 450px;
+  height: 445px;
   background: white;
   border-radius: 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);

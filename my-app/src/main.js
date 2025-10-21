@@ -6,7 +6,13 @@ function Main() {
   const [chatOpen, setChatOpen] = useState(false);
   const navigate = useNavigate();
 
-  // === 1. '내 위치 근처 찾기' 로직 (Geolocation 요청 및 서버 POST) ===
+  // 챗봇 메시지 관리를 위한 state 추가
+  const [messages, setMessages] = useState([
+    { id: 1, text: "안녕하세요! 무엇을 도와드릴까요?", sender: 'bot' }
+  ]);
+  const [inputValue, setInputValue] = useState('');
+
+  // === '내 위치 근처 찾기' 로직 (Geolocation 요청 및 서버 POST) ===
   const findNearMe = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -59,6 +65,28 @@ function Main() {
     navigate("/map"); 
   };
 
+  // 메시지 전송을 처리하는 함수 추가
+  const handleSendMessage = () => {
+    // 입력값이 비어있으면 아무것도 하지 않음
+    if (inputValue.trim() === "") return;
+
+    // 새 메시지 객체 생성 (사용자가 보낸 메시지)
+    const newMessage = {
+      id: Date.now(), // 고유한 key를 위해 현재 시간을 사용
+      text: inputValue,
+      sender: 'user'
+    };
+
+    // 기존 메시지 목록에 새 메시지를 추가하여 state 업데이트
+    setMessages([...messages, newMessage]);
+    
+    // 입력창 비우기
+    setInputValue('');
+    
+    // (추가) 여기에 챗봇이 응답하는 로직을 나중에 구현할 수 있습니다.
+    // 예: setTimeout(() => { setMessages(prev => [...prev, {id: Date.now(), text: "봇 응답입니다.", sender: 'bot'}]); }, 1000);
+  };
+
   return (
     <div className="main-container">
       {/* 중앙 카드 */}
@@ -90,12 +118,25 @@ function Main() {
         <div className="chat-box">
           <div className="chat-header">챗봇</div>
           <div className="chat-body">
-            <div className="chat-message left">안녕하세요! 무엇을 도와드릴까요?</div>
-            <div className="chat-message right">근처 맛집 알려줘</div>
+            {/* 하드코딩된 메시지 대신 state를 기반으로 동적 렌더링 */}
+            {messages.map(message => (
+              <div 
+                key={message.id} 
+                className={`chat-message ${message.sender === 'user' ? 'right' : 'left'}`}
+              >
+                {message.text}
+              </div>
+            ))}
           </div>
           <div className="chat-input-area">
-            <input type="text" placeholder="메시지를 입력하세요..." />
-            <button>전송</button>
+            <input 
+              type="text" 
+              placeholder="메시지를 입력하세요..." 
+              value={inputValue} // 입력값을 state와 연결
+              onChange={(e) => setInputValue(e.target.value)} // 입력할 때마다 state 업데이트
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} // 엔터 키로도 전송
+            />
+            <button onClick={handleSendMessage}>전송</button>
           </div>
         </div>
       )}
