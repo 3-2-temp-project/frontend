@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./main.css";
 
 // 카카오맵 API 로딩이 완료되면 전역 변수 'kakao'가 생깁니다.
@@ -6,35 +7,49 @@ import "./main.css";
 //const { kakao } = window;
 
 function Map() {
-    // 1. 지도를 담을 DOM 요소의 ref를 만듭니다.
+
     const mapContainer = useRef(null); 
 
-    // === [1. 위치 정보 데이터 정의] ===
+    // 위치 정보 데이터 정의
     const PROVINCES = ["서울특별시", "경기도"];
     const DISTRICTS_BY_PROVINCE = {
         "서울특별시": ["은평구"],
         "경기도": ["화성시 와우리"],
     };
 
-    // ★★★★ 위치 좌표 데이터 (은평구청과 화성시청 좌표) ★★★★
+    // 위치 좌표 데이터 (은평구청과 화성시청 좌표)
     const LOCATION_COORDS = {
         "서울특별시 은평구": { lat: 37.6027, lng: 126.9292 }, // 은평구청 근처
         "경기도 화성시 와우리": { lat: 37.1994, lng: 126.8317 }, // 화성시청 근처
     };
 
-    // === [2. 상태(State) 정의] ===
+    // useSearchParams 훅을 state 초기화 *전에* 호출
+    const [searchParams] = useSearchParams();
+    const urlLat = searchParams.get('lat');
+    const urlLng = searchParams.get('lng');
+
+    // URL 파라미터 유무에 따라 콤보박스 초기 상태 결정
+    // 'current'는 "현위치 모드"를 의미하는 특수 값입니다.
+    const initialProvince = urlLat ? "current" : PROVINCES[0];
+    const initialDistrict = urlLat ? "" : DISTRICTS_BY_PROVINCE[PROVINCES[0]][0];
+
+    // === [상태(State) 정의] ===
     // 초기값은 "서울특별시"와 해당 지역의 첫 번째 구인 "은평구"로 설정합니다.
-    const [selectedProvince, setSelectedProvince] = useState(PROVINCES[0]);
-    const [selectedDistrict, setSelectedDistrict] = useState(DISTRICTS_BY_PROVINCE[PROVINCES[0]][0]);
+    //const [selectedProvince, setSelectedProvince] = useState(PROVINCES[0]);
+    //const [selectedDistrict, setSelectedDistrict] = useState(DISTRICTS_BY_PROVINCE[PROVINCES[0]][0]);
+    
+    //useState의 초기값을 위에서 정한 initial 값으로 변경
+    const [selectedProvince, setSelectedProvince] = useState(initialProvince);
+    const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
 
     // === 지도 및 필터 관련 상태 ===
     const [mapInstance, setMapInstance] = useState(null); // 지도 객체를 저장할 state
     const [markers, setMarkers] = useState([]); // 생성된 마커들을 저장할 state
     const [activeFilter, setActiveFilter] = useState("전체"); // 활성화된 필터 버튼 state
+    const [infowindow, setInfowindow] = useState(null); // 정보창(infowindow) 객체를 관리할 state
+    
     const foodCategories = ["전체", "한식", "중식", "일식", "양식", "카페"];
 
-    // 정보창(infowindow) 객체를 관리할 state 추가
-    const [infowindow, setInfowindow] = useState(null);
     
     // === 식당 목업(Mock) 데이터 ===
     const MOCK_RESTAURANTS = [
@@ -43,16 +58,21 @@ function Map() {
         { id: 3, name: "은평면옥", category: "한식", lat: 37.6050, lng: 126.9210, address: "서울 은평구 불광로 10", phone: "02-123-4567" },
     ];
 
-    // === [3. 이벤트 핸들러] ===
+    // 이벤트 핸들러
     const handleProvinceChange = (e) => {
         const newProvince = e.target.value;
         setSelectedProvince(newProvince);
         
-        // 시/도 변경 시, 해당 시/도의 첫 번째 구/군/읍/면/동으로 District도 자동 업데이트
-        const newDistricts = DISTRICTS_BY_PROVINCE[newProvince];
-        if (newDistricts && newDistricts.length > 0) {
-            setSelectedDistrict(newDistricts[0]);
+        // '현위치' 모드가 아닐 때만 두 번째 콤보박스 값을 변경
+        if (newProvince === "current") {
+            setSelectedDistrict("");
+        } else {
+            const newDistricts = DISTRICTS_BY_PROVINCE[newProvince]; // 시/도 변경 시, 해당 시/도의 첫 번째 구/군/읍/면/동으로 District도 자동 업데이트
+            if (newDistricts && newDistricts.length > 0) {
+                setSelectedDistrict(newDistricts[0]);
+            }
         }
+
     };
 
     // === [새로 추가된 부분 3] 식당 리스트 클릭 시 지도 이동 및 정보창 표시 핸들러 ===
@@ -88,26 +108,50 @@ function Map() {
 
     // === [useEffect: 지도 초기화 및 업데이트] ===
     useEffect(() => {
-    // 현재 선택된 위치의 좌표를 가져옵니다.
-    const currentKey = `${selectedProvince} ${selectedDistrict}`;
-    const targetCoords = LOCATION_COORDS[currentKey] || { lat: 33.450701, lng: 126.570667 }; // 기본값은 제주도로 설정
+        let targetCoords; // 지도의 중심이 될 좌표
 
-    // 지도를 초기화하고 표시하는 함수
-    const initMap = () => {
-      //const kakaoMaps = window.kakao.maps; 
-        const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
-        const options = { center, level: 4 };
-        const map = new window.kakao.maps.Map(mapContainer.current, options);
+        // ✨ 6. state 값을 기준으로 분기 처리 (state가 이미 URL을 반영함)
+        if (selectedProvince === "current" && urlLat && urlLng) {
+            // "현 위치 찾기" 모드
+            targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
+        } else {
+            // "위치 지정" 모드
+            const currentKey = `${selectedProvince} ${selectedDistrict}`;
+            targetCoords = LOCATION_COORDS[currentKey] || { lat: 33.450701, lng: 126.570667 };
+        }
 
-        // 정보창 인스턴스를 한 번만 생성하고 state에 저장
-        const iw = new window.kakao.maps.InfoWindow({ removable: true, zIndex: 1 });
-        setInfowindow(iw);
+        // 지도를 초기화하고 표시하는 함수
+        const initMap = () => {
+            const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
+            const options = { center, level: 4 };
+            const map = new window.kakao.maps.Map(mapContainer.current, options);
 
-        // 지도 객체를 state에 저장
-        setMapInstance(map);
-      
-        // 목업 데이터를 기반으로 여러 마커를 생성
-        // 마커 생성 시, 각 마커에 'click' 이벤트 리스너
+            // 정보창 인스턴스를 한 번만 생성하고 state에 저장
+            const iw = new window.kakao.maps.InfoWindow({ removable: true, zIndex: 1 });
+            setInfowindow(iw);
+
+            // 지도 객체를 state에 저장
+            setMapInstance(map);
+
+            // "현 위치" 모드일 때만 빨간 점 마커를 추가
+            if (selectedProvince === "current" && urlLat && urlLng) {
+                // 마커 이미지를 생성합니다. (빨간 점 모양)
+                const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png'; 
+                const imageSize = new window.kakao.maps.Size(64, 69);
+                const imageOption = {offset: new window.kakao.maps.Point(27, 69)};
+                const markerImage = new window.kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+                
+                // 마커를 생성하고 지도에 표시합니다.
+                new window.kakao.maps.Marker({
+                    map: map,
+                    position: center, // 마커의 위치는 지도의 중심 (내 위치)
+                    image: markerImage // 커스텀 마커 이미지 설정
+                });
+                
+            }
+
+            // 목업 데이터를 기반으로 여러 마커를 생성
+            // 마커 생성 시, 각 마커에 'click' 이벤트 리스너
             const createdMarkers = MOCK_RESTAURANTS.map(resto => {
                 const markerPosition = new window.kakao.maps.LatLng(resto.lat, resto.lng);
                 const marker = new window.kakao.maps.Marker({ position: markerPosition });
@@ -148,9 +192,9 @@ function Map() {
       document.head.appendChild(script);
     }
     
-    }, [selectedProvince, selectedDistrict]); // 👈 ★★★ 종속성 추가: 이 값들이 변하면 Hook이 다시 실행됩니다.
+    }, [selectedProvince, selectedDistrict, urlLat, urlLng]);
 
-    // ✨ 2. [새로운 useEffect 2: 필터 변경 시 마커 표시/숨김 처리] ===
+    // 2. [새로운 useEffect 2: 필터 변경 시 마커 표시/숨김 처리] ===
     useEffect(() => {
         // mapInstance나 markers가 아직 준비되지 않았으면 아무것도 하지 않음
         if (!mapInstance || markers.length === 0) return;
@@ -182,11 +226,37 @@ function Map() {
             <div className="Map" style={{ width: '60%', padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
                     <h1 style={{ marginRight: '20px', fontSize: '1.5em' }}>현재 위치:</h1>
-                    <select value={selectedProvince} onChange={handleProvinceChange} style={{ padding: '8px', marginRight: '10px' }}>
-                        {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+                    {/* 시/도 콤보박스 수정 */}
+                    <select 
+                        value={selectedProvince} 
+                        onChange={handleProvinceChange}
+                        style={{ padding: '8px', marginRight: '10px' }}
+                    >
+                        {/* "현위치 모드"일 때만 "현위치" 옵션을 동적으로 추가 */}
+                        {urlLat && <option value="current">현위치</option>}
+                        
+                        {PROVINCES.map((province) => (
+                            <option key={province} value={province}>
+                                {province}
+                            </option>
+                        ))}
                     </select>
-                    <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} style={{ padding: '8px' }}>
-                        {DISTRICTS_BY_PROVINCE[selectedProvince].map((d) => <option key={d} value={d}>{d}</option>)}
+
+                    {/* 시/군/구 콤보박스 수정 */}
+                    <select 
+                        value={selectedDistrict} 
+                        onChange={(e) => setSelectedDistrict(e.target.value)}
+                        style={{ padding: '8px' }}
+                        // "현위치 모드"일 때는 두 번째 콤보박스를 비활성화
+                        disabled={selectedProvince === "current"} 
+                    >
+                        {/* "현위치 모드"가 아닐 때만 지역 목록을 보여줌 */}
+                        {selectedProvince !== "current" && DISTRICTS_BY_PROVINCE[selectedProvince] &&
+                            DISTRICTS_BY_PROVINCE[selectedProvince].map((district) => (
+                            <option key={district} value={district}>
+                                {district}
+                            </option>
+                        ))}
                     </select>
                 </div>
                 <div id="kakao-map" ref={mapContainer} style={{ width: '100%', height: 'calc(100% - 70px)' }} />

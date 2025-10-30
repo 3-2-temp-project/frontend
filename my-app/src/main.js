@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./main.css";
 
+import { askChat } from './api/chat'; // 챗봇 API 함수. 경로 수정
+
 function Main() {
   const [chatOpen, setChatOpen] = useState(false);
   const navigate = useNavigate();
@@ -11,6 +13,7 @@ function Main() {
     { id: 1, text: "안녕하세요! 무엇을 도와드릴까요?", sender: 'bot' }
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // === '내 위치 근처 찾기' 로직 (Geolocation 요청 및 서버 POST) ===
   const findNearMe = () => {
@@ -65,27 +68,66 @@ function Main() {
     navigate("/map"); 
   };
 
-  // 메시지 전송을 처리하는 함수 추가
-  const handleSendMessage = () => {
-    // 입력값이 비어있으면 아무것도 하지 않음
-    if (inputValue.trim() === "") return;
+  // 메시지 전송을 처리하는 함수
+  //handleSendMessage 함수를 'askChat'을 사용하도록 수정
+    const handleSendMessage = async () => {
+        const userInput = inputValue.trim();
+        if (userInput === "" || isLoading) return; 
 
-    // 새 메시지 객체 생성 (사용자가 보낸 메시지)
-    const newMessage = {
-      id: Date.now(), // 고유한 key를 위해 현재 시간을 사용
-      text: inputValue,
-      sender: 'user'
+        // 사용자가 입력한 메시지를 객체로 만듦
+        const newUserMessage = {
+            id: Date.now(),
+            text: userInput,
+            sender: 'user'
+        };
+
+        // UI에 사용자 메시지를 즉시 반영
+        setMessages(prevMessages => [...prevMessages, newUserMessage]);
+        setInputValue('');
+        setIsLoading(true); // 로딩 시작
+
+        try {
+            // fetch 대신 'askChat' 함수 호출
+            // askChat 함수가 세션 ID, API 경로 등을 모두 알아서 처리
+            const response = await askChat(userInput); // (필터는 나중에 필요시 추가)
+
+            // 응답 데이터 키 'response.answer'
+            const botMessage = {
+                id: Date.now() + 1,
+                text: response.answer,
+                sender: 'bot'
+            };
+
+            // UI에 봇의 응답 메시지 추가
+            setMessages(prevMessages => [...prevMessages, botMessage]);
+
+            
+            //'items' 필드가 있는지, 그리고 0개 이상인지 확인
+            if (response.items && response.items.length > 0) {
+                console.log("AI가 식당을 추천했습니다. Map 페이지로 이동합니다.", response.items);
+                
+                // 4. Map.js로 데이터와 함께 이동
+                navigate('/map', { 
+                    state: { 
+                        source: 'chatbot', // 챗봇을 통해 진입했음을 알림
+                        restaurants: response.items // AI가 추천해준 식당 목록
+                    } 
+                });
+            }
+            // 'items'가 없으면 (단순 대화면) 아무것도 하지 않고 함수 종료
+
+        } catch (error) {
+            console.error("챗봇 API 연동 오류:", error);
+            const errorMessage = {
+                id: Date.now() + 1,
+                text: "죄송합니다. 서버와 통신 중 오류가 발생했습니다.",
+                sender: 'bot'
+            };
+            setMessages(prevMessages => [...prevMessages, errorMessage]);
+        } finally {
+            setIsLoading(false); // 로딩 종료
+        }
     };
-
-    // 기존 메시지 목록에 새 메시지를 추가하여 state 업데이트
-    setMessages([...messages, newMessage]);
-    
-    // 입력창 비우기
-    setInputValue('');
-    
-    // (추가) 여기에 챗봇이 응답하는 로직을 나중에 구현할 수 있습니다.
-    // 예: setTimeout(() => { setMessages(prev => [...prev, {id: Date.now(), text: "봇 응답입니다.", sender: 'bot'}]); }, 1000);
-  };
 
   return (
     <div className="main-container">
@@ -101,13 +143,13 @@ function Main() {
         {/* 버튼 연결 수정 */}
         <button 
           className="local-btn"
-          onClick={findNearMe} // 👈 새로운 함수 연결 (위치 요청 + 서버 저장)
+          onClick={findNearMe} //함수 연결 (위치 요청 + 서버 저장)
         >
           내 위치 근처 찾기
         </button>
         <button 
           className="choice-btn"
-          onClick={goToMap} // 👈 기존 함수 유지 (단순 페이지 이동)
+          onClick={goToMap} //기존 함수 유지 (단순 페이지 이동)
         >
           위치 지정해서 찾기
         </button>
@@ -127,6 +169,9 @@ function Main() {
                 {message.text}
               </div>
             ))}
+            {isLoading && (
+                            <div className="chat-message left"><span>생각 중... 🤔</span></div>
+                        )}
           </div>
           <div className="chat-input-area">
             <input 
@@ -134,9 +179,12 @@ function Main() {
               placeholder="메시지를 입력하세요..." 
               value={inputValue} // 입력값을 state와 연결
               onChange={(e) => setInputValue(e.target.value)} // 입력할 때마다 state 업데이트
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} // 엔터 키로도 전송
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                            disabled={isLoading}
             />
-            <button onClick={handleSendMessage}>전송</button>
+            <button onClick={handleSendMessage} disabled={isLoading}>
+                                        {isLoading ? '...' : '전송'}
+                                    </button>          
           </div>
         </div>
       )}
