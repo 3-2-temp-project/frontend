@@ -2,10 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import "./main.css";
 
-// 카카오맵 API 로딩이 완료되면 전역 변수 'kakao'가 생깁니다.
-// TypeScript를 사용한다면 'declare var kakao: any;' 선언이 필요할 수 있습니다.
-//const { kakao } = window;
-
 function Map() {
 
     const mapContainer = useRef(null); 
@@ -14,13 +10,15 @@ function Map() {
     const PROVINCES = ["서울특별시", "경기도"];
     const DISTRICTS_BY_PROVINCE = {
         "서울특별시": ["은평구"],
-        "경기도": ["화성시 와우리"],
+        "경기도": ["화성시 와우리", "수원시 팔달구", "수원시 장안구"],
     };
 
     // 위치 좌표 데이터 (은평구청과 화성시청 좌표)
     const LOCATION_COORDS = {
         "서울특별시 은평구": { lat: 37.6027, lng: 126.9292 }, // 은평구청 근처
-        "경기도 화성시 와우리": { lat: 37.1994, lng: 126.8317 }, // 화성시청 근처
+        "경기도 화성시 와우리": { lat: 37.2092, lng: 126.9769 }, // 화성시청 근처
+        "경기도 수원시 팔달구": { lat: 37.2920, lng: 127.0107 }, // 수원시청 근처
+        "경기도 수원시 장안구": { lat: 37.3025, lng: 127.0169 },
     };
 
     // useSearchParams 훅을 state 초기화 *전에* 호출
@@ -28,16 +26,10 @@ function Map() {
     const urlLat = searchParams.get('lat');
     const urlLng = searchParams.get('lng');
 
-    // URL 파라미터 유무에 따라 콤보박스 초기 상태 결정
-    // 'current'는 "현위치 모드"를 의미하는 특수 값입니다.
-    const initialProvince = urlLat ? "current" : PROVINCES[0];
-    const initialDistrict = urlLat ? "" : DISTRICTS_BY_PROVINCE[PROVINCES[0]][0];
+    // URL에 lat, lng가 있으면 'all' 모드, 없으면 기본값(서울특별시)
+    const initialProvince = urlLat ? "all" : PROVINCES[0];
+    const initialDistrict = urlLat ? "all" : DISTRICTS_BY_PROVINCE[PROVINCES[0]][0];
 
-    // === [상태(State) 정의] ===
-    // 초기값은 "서울특별시"와 해당 지역의 첫 번째 구인 "은평구"로 설정합니다.
-    //const [selectedProvince, setSelectedProvince] = useState(PROVINCES[0]);
-    //const [selectedDistrict, setSelectedDistrict] = useState(DISTRICTS_BY_PROVINCE[PROVINCES[0]][0]);
-    
     //useState의 초기값을 위에서 정한 initial 값으로 변경
     const [selectedProvince, setSelectedProvince] = useState(initialProvince);
     const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
@@ -54,8 +46,12 @@ function Map() {
     // === 식당 목업(Mock) 데이터 ===
     const MOCK_RESTAURANTS = [
         { id: 1, name: "오레노라멘 은평점", category: "일식", lat: 37.6033, lng: 126.9325, address: "서울 은평구 연서로 214", phone: "02-356-1234" },
-        { id: 2, name: "카페 온더웨이", category: "카페", lat: 37.6015, lng: 126.9080, address: "서울 은평구 통일로 83길", phone: "02-388-5678" },        // (데이터베이스 연동 후에는 이 부분이 DB 데이터로 대체됩니다)
+        { id: 2, name: "카페 온더웨이", category: "카페", lat: 37.6015, lng: 126.9080, address: "서울 은평구 통일로 83길", phone: "02-388-5678" },
         { id: 3, name: "은평면옥", category: "한식", lat: 37.6050, lng: 126.9210, address: "서울 은평구 불광로 10", phone: "02-123-4567" },
+        { id: 4, name: "화성 짬뽕", category: "중식", lat: 37.2105, lng: 126.9758, address: "경기 화성시 봉담읍 와우리로 45", phone: "031-765-4321" },
+    { id: 5, name: "라뜰리에", category: "양식", lat: 37.2118, lng: 126.9751, address: "경기 화성시 봉담읍 와우리로 78", phone: "031-876-5432" },
+    { id: 6, name: "봉담 한우마을", category: "한식", lat: 37.2130, lng: 126.9745, address: "경기 화성시 봉담읍 와우리로 102", phone: "031-234-5678" },
+    { id: 7, name: "카페 드 봉담", category: "카페", lat: 37.2155, lng: 126.9738, address: "경기 화성시 봉담읍 와우리로 150", phone: "031-345-6789" },
     ];
 
     // 이벤트 핸들러
@@ -63,19 +59,19 @@ function Map() {
         const newProvince = e.target.value;
         setSelectedProvince(newProvince);
         
-        // '현위치' 모드가 아닐 때만 두 번째 콤보박스 값을 변경
-        if (newProvince === "current") {
-            setSelectedDistrict("");
+        // 'all'을 선택하면 두 번째 콤보박스도 'all'로 설정
+        if (newProvince === "all") {
+            setSelectedDistrict("all");
         } else {
-            const newDistricts = DISTRICTS_BY_PROVINCE[newProvince]; // 시/도 변경 시, 해당 시/도의 첫 번째 구/군/읍/면/동으로 District도 자동 업데이트
+            // 다른 시/도를 선택하면 해당 지역의 첫 번째 구/군으로 설정
+            const newDistricts = DISTRICTS_BY_PROVINCE[newProvince];
             if (newDistricts && newDistricts.length > 0) {
                 setSelectedDistrict(newDistricts[0]);
             }
         }
-
     };
 
-    // === [새로 추가된 부분 3] 식당 리스트 클릭 시 지도 이동 및 정보창 표시 핸들러 ===
+    // 식당 리스트 클릭 시 지도 이동 및 정보창 표시 핸들러
     const handleRestaurantClick = (restaurant) => {
         if (!mapInstance || !infowindow) return;
 
@@ -104,20 +100,18 @@ function Map() {
         }
     };
 
-
-
-    // === [useEffect: 지도 초기화 및 업데이트] ===
+    // 지도 초기화 및 마커 생성
     useEffect(() => {
-        let targetCoords; // 지도의 중심이 될 좌표
-
-        // ✨ 6. state 값을 기준으로 분기 처리 (state가 이미 URL을 반영함)
-        if (selectedProvince === "current" && urlLat && urlLng) {
-            // "현 위치 찾기" 모드
+        let targetCoords; 
+        // 지도 중심 좌표 결정 로직
+        if (selectedProvince === "all" && urlLat && urlLng) {
+            // 'all' 모드(Geolocation으로 진입)일 경우 URL의 좌표 사용
             targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
         } else {
-            // "위치 지정" 모드
+            // 'all' 모드가 아니거나(사용자가 콤보박스 조작) URL 좌표가 없는 경우
             const currentKey = `${selectedProvince} ${selectedDistrict}`;
-            targetCoords = LOCATION_COORDS[currentKey] || { lat: 33.450701, lng: 126.570667 };
+            // 'all all' 같은 유효하지 않은 키일 경우 기본값(은평구) 사용
+            targetCoords = LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
         }
 
         // 지도를 초기화하고 표시하는 함수
@@ -126,32 +120,11 @@ function Map() {
             const options = { center, level: 4 };
             const map = new window.kakao.maps.Map(mapContainer.current, options);
 
-            // 정보창 인스턴스를 한 번만 생성하고 state에 저장
             const iw = new window.kakao.maps.InfoWindow({ removable: true, zIndex: 1 });
             setInfowindow(iw);
 
-            // 지도 객체를 state에 저장
             setMapInstance(map);
 
-            // "현 위치" 모드일 때만 빨간 점 마커를 추가
-            if (selectedProvince === "current" && urlLat && urlLng) {
-                // 마커 이미지를 생성합니다. (빨간 점 모양)
-                const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png'; 
-                const imageSize = new window.kakao.maps.Size(64, 69);
-                const imageOption = {offset: new window.kakao.maps.Point(27, 69)};
-                const markerImage = new window.kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
-                
-                // 마커를 생성하고 지도에 표시합니다.
-                new window.kakao.maps.Marker({
-                    map: map,
-                    position: center, // 마커의 위치는 지도의 중심 (내 위치)
-                    image: markerImage // 커스텀 마커 이미지 설정
-                });
-                
-            }
-
-            // 목업 데이터를 기반으로 여러 마커를 생성
-            // 마커 생성 시, 각 마커에 'click' 이벤트 리스너
             const createdMarkers = MOCK_RESTAURANTS.map(resto => {
                 const markerPosition = new window.kakao.maps.LatLng(resto.lat, resto.lng);
                 const marker = new window.kakao.maps.Marker({ position: markerPosition });
@@ -173,7 +146,6 @@ function Map() {
                 });
                 return marker;
             });
-        // 생성된 마커들을 state에 저장
         setMarkers(createdMarkers);
     };
 
@@ -194,24 +166,21 @@ function Map() {
     
     }, [selectedProvince, selectedDistrict, urlLat, urlLng]);
 
-    // 2. [새로운 useEffect 2: 필터 변경 시 마커 표시/숨김 처리] ===
+    // 필터 변경 시 마커 표시/숨김 처리
     useEffect(() => {
-        // mapInstance나 markers가 아직 준비되지 않았으면 아무것도 하지 않음
+        
         if (!mapInstance || markers.length === 0) return;
 
-        // 모든 마커를 순회합니다.
         markers.forEach(marker => {
             // "전체" 필터가 선택되었거나, 마커의 카테고리가 현재 활성 필터와 일치하는 경우
             if (activeFilter === "전체" || marker.category === activeFilter) {
-                // 마커를 지도에 표시합니다.
                 marker.setMap(mapInstance);
             } else {
-                // 그렇지 않은 경우, 마커를 지도에서 숨깁니다.
                 marker.setMap(null);
             }
         });
 
-    }, [activeFilter, markers, mapInstance]); // activeFilter가 바뀔 때마다 이 훅이 실행됩니다.
+    }, [activeFilter, markers, mapInstance]);
 
     // === 현재 필터에 맞는 식당 목록 ===
     const filteredRestaurants = activeFilter === "전체"
@@ -226,14 +195,19 @@ function Map() {
             <div className="Map" style={{ width: '60%', padding: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
                     <h1 style={{ marginRight: '20px', fontSize: '1.5em' }}>현재 위치:</h1>
-                    {/* 시/도 콤보박스 수정 */}
+                    {/* 시/도 콤보박스 */}
                     <select 
                         value={selectedProvince} 
                         onChange={handleProvinceChange}
-                        style={{ padding: '8px', marginRight: '10px' }}
+                        style={{ 
+                            padding: '8px', 
+                            marginRight: '10px',
+                            // 'all' 모드일 때 연한 회색 글씨로 표시
+                            color: selectedProvince === 'all' ? '#999' : '#000'
+                        }}
                     >
-                        {/* "현위치 모드"일 때만 "현위치" 옵션을 동적으로 추가 */}
-                        {urlLat && <option value="current">현위치</option>}
+                        {/* 'all' 옵션을 기본으로 추가 */}
+                        <option value="all">--전체--</option>
                         
                         {PROVINCES.map((province) => (
                             <option key={province} value={province}>
@@ -242,21 +216,29 @@ function Map() {
                         ))}
                     </select>
 
-                    {/* 시/군/구 콤보박스 수정 */}
+                    {/*시/군/구 콤보박스 */}
                     <select 
                         value={selectedDistrict} 
                         onChange={(e) => setSelectedDistrict(e.target.value)}
-                        style={{ padding: '8px' }}
-                        // "현위치 모드"일 때는 두 번째 콤보박스를 비활성화
-                        disabled={selectedProvince === "current"} 
+                        style={{ 
+                            padding: '8px',
+                            // 'all' 모드일 때 연한 회색 글씨로 표시
+                            color: selectedDistrict === 'all' ? '#999' : '#000'
+                        }}
+                        // 'all' 모드일 때는 두 번째 콤보박스를 비활성화
+                        disabled={selectedProvince === "all"} 
                     >
-                        {/* "현위치 모드"가 아닐 때만 지역 목록을 보여줌 */}
-                        {selectedProvince !== "current" && DISTRICTS_BY_PROVINCE[selectedProvince] &&
+                        {/* 'all' 모드일 때는 '--전체--'만, 아닐 때는 지역 목록 표시 */}
+                        {selectedProvince === "all" ? (
+                            <option value="all">--전체--</option>
+                        ) : (
+                            DISTRICTS_BY_PROVINCE[selectedProvince] &&
                             DISTRICTS_BY_PROVINCE[selectedProvince].map((district) => (
-                            <option key={district} value={district}>
-                                {district}
-                            </option>
-                        ))}
+                                <option key={district} value={district}>
+                                    {district}
+                                </option>
+                            ))
+                        )}
                     </select>
                 </div>
                 <div id="kakao-map" ref={mapContainer} style={{ width: '100%', height: 'calc(100% - 70px)' }} />
