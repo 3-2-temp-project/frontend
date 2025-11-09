@@ -1,0 +1,118 @@
+.register-page * {
+    box-sizing: border-box;
+    font-family: 'SUIT-Medium';
+}
+.register-page{
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #c9eaff;
+}
+
+.register-page div h5 {
+    margin-bottom: 3px; 
+    color: rgb(107, 107, 107);
+}
+
+.register-page form {
+    width: 600px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid #ffffff;
+    border-radius: 20px;
+    padding: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.register-page .input-field {
+    width: 70%;
+    height: 30px;
+    border: 1px solid #0073e6;
+    border-radius: 5px;
+    padding: 0 10px;
+    margin-bottom: 10px;
+}
+
+.register-page .input-field1 {
+    width: auto;
+    height: 30px;
+    border: 1px solid #0073e6;
+    border-radius: 5px;
+    padding: 0 10px;
+    margin-bottom: 10px;
+}
+
+.register-page .input-field2 {
+    width: 40%;
+    height: 30px;
+    border: 1px solid #0073e6;
+    border-radius: 5px;
+    padding: 0 10px;
+    margin-bottom: 10px;
+}
+
+.register-page .input-field3 {
+    width: 8%;
+    height: 30px;
+    border: 1px solid #0073e6;
+    border-radius: 5px;
+    padding: 0 10px;
+    margin-bottom: 10px;
+}
+
+.register-page .dupIdCheck-btn {
+    background-color: #0073e6;
+    color: #f7f5f5;
+    width: auto;
+    height: 30px;
+    font-size: 13px;
+    border: 1px solid #0073e6;
+    border-radius: 5px;
+    margin-left: 10px;
+    cursor: pointer; /* 마우스 커서 추가 */
+}
+.register-page .dupIdCheck-btn:disabled {
+    background-color: grey;
+    cursor: not-allowed; /* 비활성화된 버튼에 대한 커서 변경 오류나면없애기*/
+}
+.register-page .register-title {
+    text-align: center;
+    color: #0073e6
+}
+
+.register-page select {
+    width: 50%;
+    height: 30px;
+    border: 1px solid #0073e6;
+    border-radius: 5px;
+    padding: 0 10px;
+    margin-bottom: 10px;
+}
+
+.register-page .register {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; 
+}
+
+.register-page .submit-btn {
+    background-color: #0073e6;
+    color : white;
+    width: 400px;
+    height:50px;
+    font-size: 20px;
+    font-weight: bold;
+    border : none;
+    border-radius: 5px;
+    margin : 20px 0 40px 0;
+    cursor: pointer; /* 마우스 커서 추가 */
+}

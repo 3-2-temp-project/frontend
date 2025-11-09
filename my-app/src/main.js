@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "./main.css";
 
 import { askChat } from './chat';
@@ -30,7 +30,7 @@ function Main() {
           
           try {
             // 서버로 위치 전송
-            const response = await fetch('/location', {
+            const response = await fetch('http://localhost:5000/location', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ lat, lng }),
@@ -126,6 +126,26 @@ function Main() {
 
   return (
     <div className="main-container">
+      <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          zIndex: 10
+      }}>
+          <Link to="/login" style={{ 
+              marginRight: '15px', 
+              textDecoration: 'none', // 밑줄 제거
+              color: '#333'            // 글자 색상 (기본 파란색에서 변경)
+          }}>
+              로그인
+          </Link>
+          <Link to="/register" style={{ 
+              textDecoration: 'none', // 밑줄 제거
+              color: '#333' 
+          }}>
+              회원가입
+          </Link>
+      </div>
       {/* 중앙 카드 */}
       <div className={`card ${chatOpen ? "card-shift" : ""}`}>
         <span className="badge">공무원 인증</span>

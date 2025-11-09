@@ -1,0 +1,88 @@
+.login-page * {
+    box-sizing: border-box;
+    font-family: 'SUIT-Medium';
+}
+
+.login-page{
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #c9eaff;
+}
+
+.login-page form {
+    /* 로그인 폼은 Register보다 작게 설정 (너비만 조절) */
+    width: 500px; 
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* Register.css와 동일한 테마 색상 */
+    border: 1px solid #ffffff;
+    border-radius: 20px;
+    padding: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.login-page .login-title {
+    text-align: center;
+    color: #0073e6;
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+.login-page div h5 {
+    margin-bottom: 3px; 
+    color: rgb(107, 107, 107);
+}
+
+.login-page .login-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* 아이디 그룹과 비밀번호 그룹 사이 간격 */
+    width: 100%;
+    /* 폼 양쪽 여백 */
+    padding: 0 40px;
+}
+
+.login-page .input-field {
+    width: 100%; /* 로그인에서는 100% 사용 */
+    height: 40px; /* 로그인 폼은 40px로 조금 더 크게 */
+    border: 1px solid #0073e6;
+    border-radius: 5px;
+    padding: 0 10px;
+}
+
+.login-page .error-message {
+    color: red;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 15px;
+    /* 에러 메시지가 없어도 높이를 차지해 레이아웃이 밀리지 않게 함 */
+    height: 20px; 
+}
+
+.login-page .submit-btn {
+    background-color: #0073e6;
+    color : white;
+    width: 400px;
+    height: 50px;
+    font-size: 20px;
+    font-weight: bold;
+    border : none;
+    border-radius: 5px;
+    margin : 20px 0 30px 0; /* Register보다 아래 여백을 조금 줄임 */
+    cursor: pointer;
+}
+
+.login-page .submit-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
