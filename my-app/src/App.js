@@ -4,6 +4,7 @@ import Map from './map.js';
 import Register from './register.js';
 import Login from './login.js';
 import './main.css';
+import './map.css';
 
 
 

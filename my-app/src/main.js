@@ -1,80 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./main.css";
-
 import { askChat } from './chat';
+
+const API_BASE_URL = 'http://localhost:5000';
 
 function Main() {
   const [chatOpen, setChatOpen] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ 페이지 새로고침 시 세션 초기화
-  useEffect(() => {
-    localStorage.removeItem("chatSessionId");
-  }, []);
+  //'식당 찾기' 모달 상태와 주소 입력값 state 추가
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [addressInput, setAddressInput] = useState('');
+  const [searchError, setSearchError] = useState('');
 
-  // 챗봇 메시지 관리
-  const [messages, setMessages] = useState([
-    { id: 1, text: "안녕하세요! 공맛집입니다! 원하시는 지역을 말씀해주세요.", sender: 'bot' }
-  ]);
+  // 챗봇 관련
+  const [messages, setMessages] = useState([{ id: 1, text: "안녕하세요! 공맛집입니다! 원하시는 지역을 말씀해주세요.", sender: 'bot' }]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // === '내 위치 근처 찾기' 로직 (Geolocation 요청 및 서버 POST) ===
-  const findNearMe = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          
-          try {
-            // 서버로 위치 전송
-            const response = await fetch('http://localhost:5000/location', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ lat, lng }),
-            });
-
-            if (!response.ok) throw new Error(`서버 위치 저장 실패: ${response.status}`);
-
-
-            console.log("위치 저장 성공 및 Map 페이지로 이동");
-            navigate(`/map?lat=${lat}&lng=${lng}`);
-
-          } catch (error) {
-            console.error("위치 정보 전송 오류:", error);
-            alert("서버 통신 오류가 발생했습니다. 위치 정보 없이 이동합니다.");
-            navigate(`/map?lat=${lat}&lng=${lng}`);
-          }
-        },
-        (error) => {
-          console.error("위치 정보를 가져오는 데 실패:", error);
-          alert("위치 정보를 가져올 수 없습니다. '위치 지정해서 찾기'를 이용해주세요.");
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    } else {
-      alert("이 브라우저는 위치 정보(Geolocation)를 지원하지 않습니다.");
-    }
-  };
-
-  // === '위치 지정해서 찾기' 로직 ===
-  const goToMap = () => {
-    navigate("/map");
-  };
-
-  // 메시지 전송을 처리하는 함수
   const handleSendMessage = async () => {
     const userInput = inputValue.trim();
     if (userInput === "" || isLoading) return;
 
     // 사용자 메시지 추가
     const newUserMessage = {
-      id: Date.now(),
-      text: userInput,
-      sender: 'user'
-    };
+      id: Date.now(), text: userInput, sender: 'user'};
     setMessages(prev => [...prev, newUserMessage]);
     setInputValue('');
     setIsLoading(true);
@@ -123,31 +73,118 @@ function Main() {
       setIsLoading(false);
     }
   };
+  
+
+  //'현위치 버튼 로직'(findNearMe->handleFindNearMe 함수 수정)
+  const handleFindNearMe = () => {
+    if (!navigator.geolocation) {
+        alert("이 브라우저는 위치 정보(Geolocation)를 지원하지 않습니다.");
+        return;
+    }
+        
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+                
+            try {
+                // 1. 서버 세션에 현위치 저장
+                const response = await fetch(`${API_BASE_URL}/location`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lat, lng }),
+                });
+                if (!response.ok) throw new Error('서버 위치 저장 실패');
+
+                // 2. Map.js로 이동 (geolocation 모드)
+                navigate(`/map?lat=${lat}&lng=${lng}`, { 
+                    state: { source: 'geolocation' } 
+                });
+
+            } catch (error) {
+                console.error("위치 정보 전송 오류:", error);
+                alert("서버 통신 오류가 발생했습니다.");
+            }
+        },
+        (error) => {
+            alert("위치 정보를 가져올 수 없습니다.");
+        }
+    );
+  };
+
+  // '주소 검색' 로직 (Kakao API 사용)
+  const handleSearchAddress = async () => {
+    if (addressInput.trim() === '') {
+        setSearchError("주소를 입력해주세요.");
+        return;
+    }
+    setSearchError('');
+
+    //Kakao 주소 검색 API 호출 (반드시 본인의 REST API 키 사용)
+    const KAKAO_API_KEY = "920ae06c68357b930c999434271d8194"; // 👈 여기에 본인 키를 넣으세요!
+        
+    try {
+        const kakaoResponse = await fetch(
+            `https://dapi.kakao.com/v2/local/search/address.json?query=${addressInput}`,
+          {
+            headers: { 'Authorization': `KakaoAK ${KAKAO_API_KEY}` }
+          }
+        );
+        if (!kakaoResponse.ok) throw new Error('Kakao API 호출 실패');
+            
+        const data = await kakaoResponse.json();
+        if (data.documents.length === 0) {
+            setSearchError("유효한 주소를 찾을 수 없습니다.");
+            return;
+        }
+
+        const doc = data.documents[0];
+        const lat = doc.y; // 위도
+        const lng = doc.x; // 경도
+        const province = doc.address.region_1depth_name; // 예: "경기도"
+        const district = doc.address.region_2depth_name; // 예: "화성시"
+
+        // 유효성 검사 (map.js의 PROVINCES와 동일해야 함)
+        const ALLOWED_PROVINCES = ["서울특별시", "경기도"];
+        if (!ALLOWED_PROVINCES.includes(province)) {
+            setSearchError("선택할 수 없는 지역입니다. (서울/경기만 가능)");
+            return;
+        }
+            
+        // 서버 세션에 *검색된* 위치 저장
+        const serverResponse = await fetch(`${API_BASE_URL}/location`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat, lng }),
+        });
+        if (!serverResponse.ok) throw new Error('서버 위치 저장 실패');
+
+        // Map.js로 이동 (address 모드 + 콤보박스 초기값 전달)
+        navigate('/map', { 
+            state: { 
+                source: 'address',
+                province: province,
+                district: district.split(' ')[0] // 예: "수원시 장안구" -> "수원시"
+            } 
+        });
+
+    } catch (error) {
+        console.error("주소 검색 오류:", error);
+        setSearchError(error.message);
+    }
+  };
+  
 
   return (
     <div className="main-container">
-      <div style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          zIndex: 10
-      }}>
+      <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10}}>
           <Link to="/login" style={{ 
-              marginRight: '15px', 
-              textDecoration: 'none', // 밑줄 제거
-              color: '#333'            // 글자 색상 (기본 파란색에서 변경)
-          }}>
-              로그인
-          </Link>
-          <Link to="/register" style={{ 
-              textDecoration: 'none', // 밑줄 제거
-              color: '#333' 
-          }}>
-              회원가입
-          </Link>
+              marginRight: '15px', textDecoration: 'none', color: '#333'}}>
+                로그인</Link>
+          <Link to="/register" style={{ textDecoration: 'none', color: '#333' }}>
+              회원가입</Link>
       </div>
-      {/* 중앙 카드 */}
-      <div className={`card ${chatOpen ? "card-shift" : ""}`}>
+      <div className={`card ${chatOpen ? "card-shift" : ""} ${isSearchOpen ? "search-open" : ""}`}>
         <span className="badge">공무원 인증</span>
         <h1 className="title">공무원 인증 맛집 플랫폼</h1>
         <p className="description">
@@ -155,17 +192,35 @@ function Main() {
           <span className="highlight underline">내 위치</span> 또는 원하는 지역에서 찾아보세요!
         </p>
         
-        {/* 버튼 영역 */}
-      <button className="local-btn" onClick={findNearMe}>
-        내 위치 근처 찾기
-      </button>
-      <button className="choice-btn" onClick={goToMap}>
-        위치 지정해서 찾기
-      </button>
-      </div>
+        <button className="find-restaurant-btn"
+            onClick={() => setIsSearchOpen(!isSearchOpen)}>식당 찾기 🍽️
+        </button>
 
+        <div className="search-expansion-area">
+            <button onClick={handleFindNearMe} className="expansion-btn">
+                현위치 기준으로 찾기
+            </button>
+
+            <p style={{fontSize: '0.9rem', textAlign:'center', color: '#777', margin: '10px 0'}}>
+                또는
+            </p>
+
+            <div style={{ display: 'flex', width: '100%', gap: '10px' }}>
+                <input 
+                    type="text"
+                    value={addressInput}
+                    onChange={(e) => setAddressInput(e.target.value)}
+                    style={{ flex: 1, padding: '8px', border: '1px solid #ccc', borderRadius: '8px' }}
+                    placeholder="예) 서울특별시 강남구, 화성시 와우리 등"
+                />
+                <button onClick={handleSearchAddress} className="expansion-btn-search">검색</button>
+            </div>
+            {searchError && <p style={{ color: 'red', fontSize: '14px', textAlign: 'center' }}>{searchError}</p>}
+        </div>
+      </div>
+      
       {/* 챗봇 창 */}
-    {chatOpen && (
+      {chatOpen && (
       <div className="chat-box">
         <div className="chat-header">공맛집 챗봇 🍽️</div>
 
@@ -232,6 +287,10 @@ function Main() {
     <button onClick={() => setChatOpen(!chatOpen)} className="chat-btn">
       💬
     </button>
+    <Link to="/map">
+      <button>Test Map</button>
+    </Link>
+    
   </div>
   );
 }

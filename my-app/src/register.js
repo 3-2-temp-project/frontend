@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // ✨ 1. navigate 훅 import
+import { useNavigate } from "react-router-dom";
 import './register.css';
 
 // ✨ API 기본 URL (main.js의 fetch와 동일하게 http:// 사용)
 const API_BASE_URL = 'http://localhost:5000';
 
 function Register() {
-    const navigate = useNavigate(); // ✨ 2. navigate 함수 초기화
+    const navigate = useNavigate();
 
     // --- State 정의 ---
     // 폼 입력값 state
