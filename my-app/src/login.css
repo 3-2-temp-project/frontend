@@ -1,88 +1,92 @@
-.login-page * {
-    box-sizing: border-box;
-    font-family: 'SUIT-Medium';
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f5f6fa;
 }
 
-.login-page{
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #c9eaff;
+.login-form {
+  width: 360px;
+  padding: 40px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.login-page form {
-    /* 로그인 폼은 Register보다 작게 설정 (너비만 조절) */
-    width: 500px; 
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    /* Register.css와 동일한 테마 색상 */
-    border: 1px solid #ffffff;
-    border-radius: 20px;
-    padding: 20px;
-    background-color: #ffffff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+.login-title {
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
 }
 
-.login-page .login-title {
-    text-align: center;
-    color: #0073e6;
-    margin-top: 20px;
-    margin-bottom: 30px;
+label {
+  display: block;
+  margin-bottom: 16px;
+  font-weight: 600;
+  color: #555;
 }
 
-.login-page div h5 {
-    margin-bottom: 3px; 
-    color: rgb(107, 107, 107);
+input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
 }
 
-.login-page .login-inputs {
-    display: flex;
-    flex-direction: column;
-    gap: 15px; /* 아이디 그룹과 비밀번호 그룹 사이 간격 */
-    width: 100%;
-    /* 폼 양쪽 여백 */
-    padding: 0 40px;
+input:focus {
+  border-color: #007bff;
 }
 
-.login-page .input-field {
-    width: 100%; /* 로그인에서는 100% 사용 */
-    height: 40px; /* 로그인 폼은 40px로 조금 더 크게 */
-    border: 1px solid #0073e6;
-    border-radius: 5px;
-    padding: 0 10px;
+.message {
+  text-align: center;
+  margin: 12px 0;
+  font-size: 14px;
 }
 
-.login-page .error-message {
-    color: red;
-    font-size: 14px;
-    text-align: center;
-    margin-top: 15px;
-    /* 에러 메시지가 없어도 높이를 차지해 레이아웃이 밀리지 않게 함 */
-    height: 20px; 
+.message.error {
+  color: #e74c3c;
 }
 
-.login-page .submit-btn {
-    background-color: #0073e6;
-    color : white;
-    width: 400px;
-    height: 50px;
-    font-size: 20px;
-    font-weight: bold;
-    border : none;
-    border-radius: 5px;
-    margin : 20px 0 30px 0; /* Register보다 아래 여백을 조금 줄임 */
-    cursor: pointer;
+.message.success {
+  color: #007bff;
 }
 
-.login-page .submit-btn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: #007bff;
+  color: white;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.submit-btn:hover {
+  background: #0056b3;
+}
+
+.submit-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.back-btn {
+  border: none;
+  background: none;
+  color: #888;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  padding: 0;
+}
+
+.back-btn:hover {
+  color: #333;
 }
