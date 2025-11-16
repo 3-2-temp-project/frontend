@@ -192,3 +192,18 @@
   border-radius: 8px;
   cursor: pointer;
 }
+
+.top-nav {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  gap: 24px;          /* 🔹 링크 사이 간격 */
+  font-size: 16px;    /* 🔹 글자 크기 키우기 */
+}
+
+.top-nav a {
+  text-decoration: none;  /* 밑줄 제거 */
+  color: #333;            /* 글자 색 */
+}

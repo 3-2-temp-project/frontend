@@ -126,25 +126,10 @@ function Main() {
 
   return (
     <div className="main-container">
-      <div style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          zIndex: 10
-      }}>
-          <Link to="/login" style={{ 
-              marginRight: '15px', 
-              textDecoration: 'none', // 밑줄 제거
-              color: '#333'            // 글자 색상 (기본 파란색에서 변경)
-          }}>
-              로그인
-          </Link>
-          <Link to="/register" style={{ 
-              textDecoration: 'none', // 밑줄 제거
-              color: '#333' 
-          }}>
-              회원가입
-          </Link>
+      <div className="top-nav">
+        <Link to="/me">내 정보</Link>
+        <Link to="/login">로그인</Link>
+        <Link to="/register">회원가입</Link>
       </div>
       {/* 중앙 카드 */}
       <div className={`card ${chatOpen ? "card-shift" : ""}`}>
