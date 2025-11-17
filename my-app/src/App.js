@@ -6,6 +6,7 @@ import Register from './register.js';
 import Login from './login.js';
 import MyInfo from './MyInfo.js';   // ✅ 새로 만든 내 정보 컴포넌트
 import './main.css';
+import './map.css'
 
 function App() {
   return (

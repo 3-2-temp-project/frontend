@@ -70,6 +70,17 @@
     font-family: 'SUIT-Medium', sans-serif;
 }
 
+.back-btn {
+    padding: 8px 12px;
+    background: #eee;
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'SUIT-Medium', sans-serif;
+    margin-right: 20px;
+}
 
 /* 오른쪽 (사이드바) 영역 */
 .Sidebar {
@@ -140,4 +151,105 @@
     margin: 5px 0 0;
     color: #888;
     font-size: 0.9rem;
+}
+
+
+/* 하단 상세정보 패널 (가로 박스) */
+.detail-panel {
+    /* ✨ .Map(.map-content) 영역 기준으로 위치 잡기 */
+    position: absolute; 
+    bottom: 20px;       /* 하단에서 20px 띄움 */
+    left: 20px;         /* 왼쪽에서 20px 띄움 */
+    
+    /* ✨ 가로 너비: .Map의 padding(좌20+우20)을 뺀 100% */
+    width: calc(100% - 40px); 
+    height: 200px;      /* 높이 200px (조절 가능) */
+    
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    
+    display: flex;
+    z-index: 10; /* 지도보다 위에 표시 */
+}
+
+/* 패널 닫기 버튼 (X) */
+.detail-panel .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: #eee;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    z-index: 11; /* 다른 내용보다 위에 */
+}
+.detail-panel .close-btn:hover {
+    background: #ddd;
+}
+
+/* (A) 60% 정보 영역 */
+.info-section {
+    width: 60%;
+    padding: 20px;
+    border-right: 1px solid #eee;
+    overflow-y: auto; /* 내용 길어지면 스크롤 */
+}
+.info-section h3 { 
+    margin-top: 0; 
+    margin-bottom: 15px;
+    color: #0073e6;
+}
+.info-section p {
+    font-size: 0.9rem;
+    color: #333;
+    margin: 8px 0;
+}
+
+/* (B) 40% 리뷰 영역 */
+.review-section {
+    width: 40%;
+    padding: 20px;
+    overflow-y: auto; /* 내용 길어지면 스크롤 */
+    font-size: 0.9rem;
+}
+.review-section h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+.review-preview {
+    border-bottom: 1px dashed #ddd;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+}
+.review-preview strong {
+    font-size: 0.95rem;
+    color: #000;
+}
+.review-preview p {
+    font-size: 0.9rem;
+    color: #555;
+    margin: 5px 0 0 0;
+}
+
+/* 리뷰 작성/더보기 버튼 */
+.review-btn {
+    width: 100%;
+    padding: 8px;
+    margin-top: 10px;
+    background: #f1f1f1;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.review-btn:hover {
+    background: #e9e9e9;
 }
