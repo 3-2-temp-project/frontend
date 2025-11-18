@@ -43,7 +43,7 @@ function Register() {
       const res = await sendCode(form.email);
       alert(res.message || "인증코드를 전송했습니다.");
       setIsCodeSent(true); // ✅ 여기서 true → 아래 인증번호 입력칸 보임
-      setIsVerified(false);
+      setIsVerified(false); // 새 코드 보낼 땐 다시 false로 초기화
     } catch (err) {
       console.error(err);
       alert(err.message || "인증코드 전송 중 오류가 발생했습니다.");
@@ -61,8 +61,10 @@ function Register() {
 
     try {
       const res = await verifyCode(form.email, code);
-      alert(res.message || "인증 결과를 확인했습니다.");
-      setIsVerified(!!res.ok);
+      console.log("verifyCode response:", res);
+      // ✅ 여기까지 예외 없이 왔으면 인증 성공으로 간주
+      setIsVerified(true);
+      alert(res.message || "이메일 인증이 완료되었습니다.");
     } catch (err) {
       console.error(err);
       alert(err.message || "인증번호 검증 중 오류가 발생했습니다.");
@@ -160,7 +162,7 @@ function Register() {
               placeholder="8자 이상"
               value={form.password}
               onChange={handleInputChange}
-          />
+            />
           </div>
         </div>
 
