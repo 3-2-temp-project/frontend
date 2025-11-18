@@ -1,39 +1,36 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
-import "./map.css";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import "./main.css";
 
-const API_BASE = "http://localhost:5000"; 
+// 🔥 백엔드 기본 주소
+const API_BASE = "http://localhost:5000"; // 필요하면 수정
+
+// 🔥 공통 GET / POST 유틸 (세션 위해 credentials: "include" 필수)
 async function apiGet(path) {
-    const res = await fetch(`${API_BASE}${path}`, {
-        method: "GET",
-        credentials: "include", // 세션 유지를 위해 필수
-    });
-    if (!res.ok) throw new Error(`API GET Error: ${res.status}`);
-    return res.json();
-}
-async function apiPost(path, body) {
-    const res = await fetch(`${API_BASE}${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // 세션 유지를 위해 필수
-        body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`API POST Error: ${res.status}`);
-    return res.json();
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  return res.json();
 }
 
-const API_BASE_URL = 'http://localhost:5000';
+async function apiPost(path, body) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
 
 function Map() {
+  const mapContainer = useRef(null);
+  const navigate = useNavigate();
 
-    const mapContainer = useRef(null); 
-    const location = useLocation();
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-
-    // 위치 정보 데이터
-    const PROVINCES = ["서울특별시", "경기도"];
-    const DISTRICTS_BY_PROVINCE = {
+  // 위치 정보 데이터 정의
+  const PROVINCES = ["서울특별시", "경기도"];
+  const DISTRICTS_BY_PROVINCE = {
     "서울특별시": [
       "은평구",
       "영등포구",
@@ -85,408 +82,332 @@ function Map() {
     "경기도 수원시 장안구": { lat: 37.2951, lng: 126.9739 },
     "경기도 수원시": { lat: 37.2636, lng: 127.0286 },
   };
-    //const foodCategories = ["전체", "한식", "중식", "일식", "양식", "카페"];
 
+  // URL 쿼리 (챗봇에서 "지도로 이동"할 때 lat/lng 붙여주는 용도)
+  const [searchParams] = useSearchParams();
+  const urlLat = searchParams.get("lat");
+  const urlLng = searchParams.get("lng");
 
-    // --- State 정의 ---
-    const source = location.state?.source; // 'geolocation', 'address', 'chatbot'
-    const urlLat = searchParams.get('lat');
-    const urlLng = searchParams.get('lng');
-    const chatbotRestaurants = location.state?.restaurants;
+  // URL에 lat, lng가 있으면 'all' 모드, 없으면 기본값(서울특별시)
+  const initialProvince = urlLat ? "all" : PROVINCES[0];
+  const initialDistrict = urlLat ? "all" : DISTRICTS_BY_PROVINCE[PROVINCES[0]][0];
 
-    // 콤보박스 state
-    const initialProvince = urlLat ? "all" : PROVINCES[0];
-    const initialDistrict = urlLat ? "all" : DISTRICTS_BY_PROVINCE[PROVINCES[0]][0];
+  const [selectedProvince, setSelectedProvince] = useState(initialProvince);
+  const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
 
-    const [selectedProvince, setSelectedProvince] = useState(initialProvince);
-    const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
+  // === 지도 및 필터 관련 상태 ===
+  const [mapInstance, setMapInstance] = useState(null);
+  const [markers, setMarkers] = useState([]);
+  const [infowindow, setInfowindow] = useState(null);
+  const [activeFilter, setActiveFilter] = useState("전체");
 
-    // API 데이터 state
-    const [isLoading, setIsLoading] = useState(false);
-    const [markers, setMarkers] = useState([]); // 카카오 마커 *객체* 배열
-    const [nearbyList, setNearbyList] = useState([]); // GET /nearby (리스트용)
-    const [radius, setRadius] = useState(0.5); // 반경
+  const [restaurants, setRestaurants] = useState([]); // 🔥 백엔드에서 받아온 식당 리스트
+  const foodCategories = ["전체", "한식", "중식", "일식", "양식", "카페"];
 
-    // 카카오맵 객체 state
-    const [mapInstance, setMapInstance] = useState(null);
-    const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  // 시/도 변경
+  const handleProvinceChange = (e) => {
+    const newProvince = e.target.value;
+    setSelectedProvince(newProvince);
 
-    const fetchNearbyRestaurants = async () => {
-        setIsLoading(true);
-        try {
-            const listData = await apiGet(`/restaurants/nearby?radius=${radius}`);
-            setNearbyList(listData);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    if (newProvince === "all") {
+      setSelectedDistrict("all");
+    } else {
+      const newDistricts = DISTRICTS_BY_PROVINCE[newProvince];
+      if (newDistricts && newDistricts.length > 0) {
+        setSelectedDistrict(newDistricts[0]);
+      }
+    }
+  };
 
-    // 1. (수정) 메인 useEffect: 지도 초기화 및 *모든 마커* 로딩
-    useEffect(() => {
-        let targetCoords;
-        if (source === 'geolocation' && urlLat && urlLng) {
-            targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
-        } else {
-            const currentKey = `${selectedProvince} ${selectedDistrict}`;
-            targetCoords = LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
-        }
+  // 식당 리스트 클릭 시 지도 이동 + 정보창
+  const handleRestaurantClick = (restaurant) => {
+    if (!mapInstance || !infowindow) return;
 
-        const fetchMarkersAndInitMap = async () => {
-            setIsLoading(true);
-            try {
-                const markerData = await response.json();
+    const { lat, lng } = restaurant;
+    const moveLatLng = new window.kakao.maps.LatLng(lat, lng);
+    mapInstance.panTo(moveLatLng);
 
-                if (window.kakao && window.kakao.maps) {
-                    window.kakao.maps.load(() => initMap(markerData, targetCoords));
-                } else {
-                    const script = document.createElement("script");
-                    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=920ae06c68357b930c999434271d8194&autoload=false`;
-                    script.async = true;
-                    document.head.appendChild(script);
-                    script.onload = () => {
-                        window.kakao.maps.load(() => initMap(markerData, targetCoords));
-                    };
-                    
-                }
-
-                // 챗봇으로 진입한 게 아닐 때만 초기 리스트 로딩
-                if (source !== 'chatbot') {
-                    await fetchNearbyRestaurants();
-                }
-
-            } catch (error) {
-                console.error("Error fetching markers:", error);
-                if (window.kakao && window.kakao.maps) {
-                    window.kakao.maps.load(() => initMap([], targetCoords));
-                }
-            } 
-        };
-
-        fetchMarkersAndInitMap();
-    }, []); // 최초 1회만 실행
-
-    // 2. (신규) '반경(radius)'이 바뀔 때마다 주변 식당 리스트 갱신
-    useEffect(() => {
-        // 맵 로딩이 완료되었고, 챗봇 모드가 아닐 때만 API 호출
-        if (mapInstance && source !== 'chatbot') {
-            fetchNearbyRestaurants();
-        }
-    }, [radius, mapInstance, source]);
-
-    // 3. 챗봇 진입 시
-    useEffect(() => {
-        if (source === 'chatbot' && chatbotRestaurants) {
-            console.log("챗봇 추천 데이터를 리스트에 표시합니다.");
-            setNearbyList(chatbotRestaurants);
-        }
-    }, [source, chatbotRestaurants]);
-
-   // ✨ (추가) 챗봇으로 진입 시 nearbyList state 업데이트
-   //이상하면 이 useEffect 지우기
-   
-    useEffect(() => {
-        if (source === 'chatbot' && chatbotRestaurants) {
-            console.log("챗봇 추천 데이터를 리스트에 표시합니다.");
-            setNearbyList(chatbotRestaurants);
-        }
-    }, [source, chatbotRestaurants]);
-
-    // 4. 콤보박스 변경 시 지도 이동
-    // (지도 중심 이동 + 하단 패널 닫기)
-    useEffect(() => {
-        if (!mapInstance) return;
-
-        let targetCoords;
-        if (selectedProvince === "all" && urlLat && urlLng) {
-            // (님의 'geolocation' 모드)
-            targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
-        } else {
-            // (팀원/님의 '주소 지정' 모드)
-            const currentKey = `${selectedProvince} ${selectedDistrict}`;
-            targetCoords = LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
-        }
-        
-        const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
-        mapInstance.setCenter(center);
-        
-        // (추가) 콤보박스 조작 시, 열려있던 하단 패널을 닫습니다.
-        setSelectedRestaurant(null); 
-
-    }, [mapInstance, selectedProvince, selectedDistrict, urlLat, urlLng]);
-    
-
-    // --- (4) 지도 초기화 및 이벤트 핸들러 ---
-
-    // (수정) initMap: 마커 생성 + 'dragend' + API 연동 클릭 이벤트
-    const initMap = (markerData, targetCoords) => {
-        const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
-        const options = { center, level: 4 };
-        const map = new window.kakao.maps.Map(mapContainer.current, options);
-        const iw = new window.kakao.maps.InfoWindow({ removable: true, zIndex: 1 });
-
-        setMapInstance(map);
-
-        // (기존) 마커 생성 및 클릭 이벤트 (GET /restaurant/detail)
-        const createdMarkers = markerData.map(resto => {
-            const markerPosition = new window.kakao.maps.LatLng(resto.lat, resto.lng);
-            const marker = new window.kakao.maps.Marker({ position: markerPosition });
-                marker.markerLat = resto.lat;
-                marker.markerLng = resto.lng;
-                //marker.category = resto.category; // 필요시 사용
-                marker.restaurantId = resto.res_id;
-                marker.setMap(map);
-
-                // 마커 클릭 리스너가 /detail API를 호출하고 state를 변경
-                window.kakao.maps.event.addListener(marker, 'click', async () => {
-                setIsLoading(true);
-                map.panTo(markerPosition);
-
-                try {
-                    const detailData = await apiGet(`/restaurant/detail?lat=${marker.markerLat}&lng=${marker.markerLng}`);
-                    setSelectedRestaurant(detailData);
-
-                    } catch (error) {
-                        console.error("Error fetching restaurant detail:", error);
-                        alert("상세 정보를 불러오는 데 실패했습니다.");
-                    } finally {
-                        setIsLoading(false);
-                    }
-                });
-            return marker;
-        });
-        setMarkers(createdMarkers);
-        window.kakao.maps.event.addListener(map, 'dragend', handleMapDragEnd);
-
-        setIsLoading(false);// 초기 로딩 완료
-    };
-
-    //지도 드래그 종료 시
-    const handleMapDragEnd = async () => {
-        if (!mapInstance) return;
-        const newCenter = mapInstance.getCenter();
-        const lat = newCenter.getLat();
-        const lng = newCenter.getLng();
-
-        await apiPost("/location", { lat, lng });
-        
-        setSelectedProvince("all");
-        setSelectedDistrict("all");
-
-        await fetchNearbyRestaurants();
-    };
-
-    // (신규) "현위치로" 버튼 클릭 시
-    const handleGoToCurrentLocation = () => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                const newPos = new window.kakao.maps.LatLng(lat, lng);
-
-                // 1. 세션 위치 업데이트
-                await fetch(`${API_BASE_URL}/location`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lat, lng }),
-                });
-
-                // 2. 지도 이동
-                mapInstance.panTo(newPos);
-                
-                // 3. 콤보박스 'all'로 리셋
-                setSelectedProvince("all");
-                setSelectedDistrict("all");
-
-                // 4. 새 위치 기준으로 주변 식당 리스트 갱신
-                await fetchNearbyRestaurants();
-            });
-        }
-    };
-    
-    // 콤보박스 변경 시
-    const handleProvinceChange = (e) => {
-        const newProvince = e.target.value;
-        setSelectedProvince(newProvince);
-        
-        // 'all'을 선택하면 두 번째 콤보박스도 'all'로 설정
-        if (newProvince === "all") {
-            setSelectedDistrict("all");
-        } else {
-            // 다른 시/도를 선택하면 해당 지역의 첫 번째 구/군으로 설정
-            const newDistricts = DISTRICTS_BY_PROVINCE[newProvince];
-            if (newDistricts && newDistricts.length > 0) {
-                setSelectedDistrict(newDistricts[0]);
-            }
-        }
-    };
-    
-    // 사이드바 리스트 클릭 시
-    const handleRestaurantClick = async (restaurant) => {
-        if (!mapInstance) return;
-        setIsLoading(true);
-
-        const { lat, lng } = restaurant; // nearbyList에서 온 데이터
-        const moveLatLng = new window.kakao.maps.LatLng(lat, lng);
-        mapInstance.panTo(moveLatLng);
-
-        try {
-            // 리스트 클릭 시에도 /detail API를 호출 (리뷰 데이터를 가져오기 위해)
-            const detailData = await apiGet(`/restaurant/detail?lat=${lat}&lng=${lng}`);
-            setSelectedRestaurant(detailData);
-
-        } catch (error) {
-            console.error("Error fetching restaurant detail:", error);
-            alert("상세 정보를 불러오는 데 실패했습니다.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <div className="map-container">
-            
-            {/* (A) 왼쪽: 지도 및 위치 선택 영역 */}
-            <div className="Map">
-                <div className="map-controls">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="back-btn"
-                    >뒤로가기</button>
-                    <h1>현재 위치:</h1>
-                    
-                    {/* 시/도 콤보박스 */}
-                    <select 
-                        value={selectedProvince} 
-                        onChange={handleProvinceChange}
-                        style={{ color: selectedProvince === 'all' ? '#999' : '#000' }}
-                    >
-                        <option value="all">--전체--</option>
-                        {PROVINCES.map((province) => (
-                            <option key={province} value={province}>{province}</option>
-                        ))}
-                    </select>
-
-                    {/* 시/군/구 콤보박스 */}
-                    <select 
-                        value={selectedDistrict} 
-                        onChange={(e) => setSelectedDistrict(e.target.value)}
-                        style={{ color: selectedDistrict === 'all' ? '#999' : '#000' }}
-                        disabled={selectedProvince === "all"} 
-                    >
-                        {selectedProvince === "all" ? (
-                            <option value="all">--전체--</option>
-                        ) : (
-                            DISTRICTS_BY_PROVINCE[selectedProvince] &&
-                            DISTRICTS_BY_PROVINCE[selectedProvince].map((district) => (
-                                <option key={district} value={district}>{district}</option>
-                            ))
-                        )}
-                    </select>
-                    <button onClick={handleGoToCurrentLocation} className="current-location-btn">
-                        현위치
-                    </button>
-                </div>
-                
-                {/* 지도 표시 영역 */}
-                <div id="kakao-map" ref={mapContainer} />
-            
-                {/* 하단 상세정보 패널 */}
-                {selectedRestaurant && (
-                    <div className="detail-panel">
-                        <button 
-                            className="close-btn" 
-                            onClick={() => setSelectedRestaurant(null)}
-                        >
-                            X
-                        </button>
-                        
-                        <div className="info-section">
-                            <h3>{selectedRestaurant.res_name}</h3>
-                            <p><strong>주소:</strong> {selectedRestaurant.address || "-"}</p>
-                            <p><strong>전화번호:</strong> {selectedRestaurant.phone || "-"}</p>
-                            <p><strong>카테고리:</strong> {selectedRestaurant.category || "-"}</p>
-                            <p><strong>평점:</strong> {selectedRestaurant.score ?? "-"}</p>
-                        </div>
-
-                        <div className="review-section">
-                            <h4>리뷰</h4>
-                            {(!selectedRestaurant.reviews || selectedRestaurant.reviews.length === 0) ? (
-                                // 리뷰가 없는 경우
-                                <div>
-                                    <p>작성된 리뷰가 없습니다.</p>
-                                    <button 
-                                        className="review-btn"
-                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_id}`)}
-                                    >
-                                        + 리뷰 작성하기
-                                    </button>
-                                </div>
-                            ) : (
-                                // 리뷰가 있는 경우
-                                <div>
-                                    {selectedRestaurant.reviews.map(review => (
-                                        <div key={review.id} className="review-preview">
-                                            <strong>{review.author}</strong>
-                                            <p>{review.content}</p>
-                                        </div>
-                                    ))}
-                                    <button 
-                                        className="review-btn"
-                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_id}`)}
-                                    >
-                                        리뷰 더보기 ({selectedRestaurant.review_count}개)
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-            </div>
-
-            {/* 식당 리스트 영역 */}
-            <div className="Sidebar">
-                {source !== 'chatbot' && (
-                    <div className="RadiusFilter">
-                        <strong>반경 선택:</strong>
-                        {[0.5, 1.0, 3.0].map(km => (
-                            <button
-                                key={km}
-                                onClick={() => setRadius(km)}
-                                className={radius === km ? 'active' : ''}
-                            >
-                                {km}km
-                            </button>
-                        ))}
-                    </div>
-                )}
-                
-                {isLoading && <div style={{ padding: '20px', textAlign: 'center' }}>로딩 중... 🌀</div>}
-                
-                <div className="RestaurantList">
-                    {!isLoading && nearbyList.length === 0 && (
-                        <div style={{ padding: '20px', color: '#888', textAlign: 'center' }}>
-                            {source === 'chatbot' ? '추천된 식당이 없습니다.' : '주변 식당이 없습니다.'}
-                        </div>
-                    )}
-                    
-                    {nearbyList.map(restaurant => (
-                        <div
-                            key={restaurant.res_id}
-                            onClick={() => handleRestaurantClick(restaurant)}
-                            className="list-item" 
-                        >
-                            <h3>{restaurant.res_name}</h3> 
-                            <p>{restaurant.category}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-        </div>
+    const targetMarker = markers.find(
+      (marker) =>
+        marker.getPosition().getLat() === lat &&
+        marker.getPosition().getLng() === lng
     );
+
+    if (!targetMarker) return;
+
+    const content = `
+      <div style="padding:15px; width:280px; font-family: 'Malgun Gothic', sans-serif;">
+        <h4 style="margin:0 0 8px 0; font-size:16px;">${restaurant.res_name}</h4>
+        <p style="font-size:12px; margin:0 0 4px 0; color:#666;">
+          <strong>카테고리:</strong> ${restaurant.category || "-"}
+        </p>
+        <p style="font-size:12px; margin:0 0 4px 0; color:#666;">
+          <strong>주소:</strong> ${restaurant.address || "-"}
+        </p>
+        <p style="font-size:12px; margin:0 0 4px 0; color:#666;">
+          <strong>평점:</strong> ${restaurant.score ?? "-"}
+        </p>
+      </div>
+    `;
+    infowindow.setContent(content);
+    infowindow.open(mapInstance, targetMarker);
+  };
+
+  // 1) 카카오맵 스크립트 로드 + 지도 객체 1번만 생성
+  useEffect(() => {
+    const initMap = () => {
+      const center = new window.kakao.maps.LatLng(37.5665, 126.978); // 기본 서울
+      const options = { center, level: 4 };
+      const map = new window.kakao.maps.Map(mapContainer.current, options);
+      const iw = new window.kakao.maps.InfoWindow({
+        removable: true,
+        zIndex: 1,
+      });
+
+      setMapInstance(map);
+      setInfowindow(iw);
+    };
+
+    if (window.kakao && window.kakao.maps) {
+      window.kakao.maps.load(initMap);
+    } else {
+      const script = document.createElement("script");
+      script.src =
+        "//dapi.kakao.com/v2/maps/sdk.js?appkey=920ae06c68357b930c999434271d8194&autoload=false";
+      script.async = true;
+      script.onload = () => {
+        window.kakao.maps.load(initMap);
+      };
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // 2) 지도 준비되면 백엔드에서 마커 데이터 받아오기
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    async function loadData() {
+      try {
+        // 🔥 URL에 lat/lng 있으면 세션에 현재 위치 저장 (radius 검색 대비)
+        if (urlLat && urlLng) {
+          await apiPost("/location", {
+            lat: parseFloat(urlLat),
+            lng: parseFloat(urlLng),
+          });
+        }
+
+        const data = await apiGet("/restaurants/markers");
+        // data: [{res_id, res_name, lat, lng, address, category, score}, ...]
+        setRestaurants(data || []);
+
+        // 카카오 마커 생성
+        const createdMarkers = (data || []).map((resto) => {
+          const markerPosition = new window.kakao.maps.LatLng(
+            resto.lat,
+            resto.lng
+          );
+          const marker = new window.kakao.maps.Marker({ position: markerPosition });
+          marker.category = resto.category || "기타";
+          marker.setMap(mapInstance);
+
+          // 마커 클릭 시 정보창 오픈
+          window.kakao.maps.event.addListener(marker, "click", () => {
+            if (!infowindow) return;
+
+            const content = `
+              <div style="padding:15px; width:280px; font-family: 'Malgun Gothic', sans-serif;">
+                <h4 style="margin:0 0 8px 0; font-size:16px;">${resto.res_name}</h4>
+                <p style="font-size:12px; margin:0 0 4px 0; color:#666;">
+                  <strong>카테고리:</strong> ${resto.category || "-"}
+                </p>
+                <p style="font-size:12px; margin:0 0 4px 0; color:#666;">
+                  <strong>주소:</strong> ${resto.address || "-"}
+                </p>
+                <p style="font-size:12px; margin:0 0 4px 0; color:#666;">
+                  <strong>평점:</strong> ${resto.score ?? "-"}
+                </p>
+              </div>
+            `;
+            infowindow.setContent(content);
+            infowindow.open(mapInstance, marker);
+          });
+
+          return marker;
+        });
+
+        setMarkers(createdMarkers);
+      } catch (err) {
+        console.error("지도/마커 로드 실패:", err);
+      }
+    }
+
+    loadData();
+  }, [mapInstance, urlLat, urlLng, infowindow]);
+
+  // 3) 시/도, 구 변경 or URL 좌표에 따라 지도 중심만 이동
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    let targetCoords;
+
+    if (selectedProvince === "all" && urlLat && urlLng) {
+      targetCoords = {
+        lat: parseFloat(urlLat),
+        lng: parseFloat(urlLng),
+      };
+    } else {
+      const currentKey = `${selectedProvince} ${selectedDistrict}`;
+      targetCoords =
+        LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
+    }
+
+    const center = new window.kakao.maps.LatLng(
+      targetCoords.lat,
+      targetCoords.lng
+    );
+    mapInstance.setCenter(center);
+  }, [mapInstance, selectedProvince, selectedDistrict, urlLat, urlLng]);
+
+  // 4) 필터 변경 시 마커 표시/숨김
+  useEffect(() => {
+    if (!mapInstance || markers.length === 0) return;
+
+    markers.forEach((marker) => {
+      if (activeFilter === "전체" || marker.category === activeFilter) {
+        marker.setMap(mapInstance);
+      } else {
+        marker.setMap(null);
+      }
+    });
+  }, [activeFilter, markers, mapInstance]);
+
+  // 현재 필터에 맞는 식당 목록
+  const filteredRestaurants =
+    activeFilter === "전체"
+      ? restaurants
+      : restaurants.filter((r) => r.category === activeFilter);
+
+  return (
+    <div style={{ display: "flex", height: "100vh" }}>
+      {/* 왼쪽: 지도 영역 */}
+      <div className="Map" style={{ width: "60%", padding: "20px" }}>
+        <div
+          style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}
+        >
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              padding: "8px 12px",
+              marginRight: "16px",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              backgroundColor: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            뒤로가기
+          </button>
+          <h1 style={{ marginRight: "20px", fontSize: "1.5em" }}>현재 위치:</h1>
+
+          {/* 시/도 콤보박스 */}
+          <select
+            value={selectedProvince}
+            onChange={handleProvinceChange}
+            style={{
+              padding: "8px",
+              marginRight: "10px",
+              color: selectedProvince === "all" ? "#999" : "#000",
+            }}
+          >
+            <option value="all">--전체--</option>
+            {PROVINCES.map((province) => (
+              <option key={province} value={province}>
+                {province}
+              </option>
+            ))}
+          </select>
+
+          {/* 시/군/구 콤보박스 */}
+          <select
+            value={selectedDistrict}
+            onChange={(e) => setSelectedDistrict(e.target.value)}
+            style={{
+              padding: "8px",
+              color: selectedDistrict === "all" ? "#999" : "#000",
+            }}
+            disabled={selectedProvince === "all"}
+          >
+            {selectedProvince === "all" ? (
+              <option value="all">--전체--</option>
+            ) : (
+              DISTRICTS_BY_PROVINCE[selectedProvince] &&
+              DISTRICTS_BY_PROVINCE[selectedProvince].map((district) => (
+                <option key={district} value={district}>
+                  {district}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+
+        <div
+          id="kakao-map"
+          ref={mapContainer}
+          style={{ width: "100%", height: "calc(100% - 70px)" }}
+        />
+      </div>
+
+      {/* 오른쪽: 필터 + 리스트 */}
+      <div
+        className="Sidebar"
+        style={{ width: "40%", padding: "20px", borderLeft: "1px solid #eee" }}
+      >
+        {/* 검색 필터 */}
+        <div className="FilterContainer" style={{ marginBottom: "20px" }}>
+          {foodCategories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setActiveFilter(category)}
+              style={{
+                padding: "8px 16px",
+                marginRight: "8px",
+                border: "1px solid #ddd",
+                borderRadius: "16px",
+                cursor: "pointer",
+                backgroundColor:
+                  activeFilter === category ? "#2c7a7b" : "#fff",
+                color: activeFilter === category ? "#fff" : "#000",
+              }}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+
+        {/* 식당 리스트 */}
+        <div className="RestaurantList">
+          {filteredRestaurants.map((restaurant) => (
+            <div
+              key={restaurant.res_id}
+              onClick={() => handleRestaurantClick(restaurant)}
+              style={{
+                padding: "15px",
+                borderBottom: "1px solid #f0f0f0",
+                cursor: "pointer",
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: "1.1em" }}>
+                {restaurant.res_name}
+              </h3>
+              <p style={{ margin: "5px 0 0", color: "#888" }}>
+                {restaurant.category}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default Map;

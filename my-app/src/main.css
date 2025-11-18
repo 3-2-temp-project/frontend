@@ -1,12 +1,13 @@
+/* 전체 레이아웃 */
 .main-container {
   position: relative;
   width: 100vw;
   height: 100vh;
   background: #c9eaff;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  justify-content: center; /* 가로로 중앙 정렬 */
+  align-items: center;     /* 세로로 중앙 정렬 */
+  min-height: 100vh;       /* 화면 전체 높이를 채워야 세로 정렬이 작동함 */
   gap: 20px;
 }
 
@@ -14,7 +15,7 @@
 .card {
   position: relative;
   width: 380px;
-  min-height: 300px;
+  height: 380px;
   background: white;
   border-radius: 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -23,11 +24,10 @@
   flex-direction: column;
   align-items: center;
   transition: all 0.5s ease;
-  overflow: hidden;
 }
 
 .card-shift {
-  margin-right: 150px;
+  margin-right: 150px; /* 챗봇 열릴 때 왼쪽으로 이동 */
 }
 
 .badge {
@@ -56,58 +56,43 @@
   line-height: 1.5;
 }
 
-.highlight { color: #0073e6; font-weight: bold; }
-.underline { text-decoration: underline; }
+.highlight {
+  color: #0073e6;
+  font-weight: bold;
+}
 
-.find-restaurant-btn {
-  width: 60%;
+.underline {
+  text-decoration: underline;
+}
+
+.local-btn {
+  width: 100%;
   padding: 12px;
-  margin-top: 15px;
-  background: #0073e6;
-  color: white;
-  border: none; 
+  margin: 8px 0;
+  background: #f1f1f1;
+  border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: background 0.3s;
-  font-size: 1rem;
-  font-weight: bold;
 }
-.find-restaurant-btn:hover {
-  background: #0056b3;
+.local-btn:hover {
+  background: #e0e0e0;
 }
 
-.search-expansion-area {
+.choice-btn {
   width: 100%;
-  /* (1) 평소에는 높이가 0이라 보이지 않음 */
-  max-height: 0; 
-  overflow: hidden;
-  padding: 0 1rem; /* 평소에는 위아래 패딩 0 */
-    
-  display: flex;
-  flex-direction: column;
-    
-  /* (2) 부드러운 애니메이션 효과 */
-  transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+  padding: 12px;
+  margin: 8px 0;
+  background: #f1f1f1;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.3s;
 }
 
-.card.search-open .search-expansion-area {
-    /* (1) 최대 높이를 줘서 내용물이 보이도록 함 */
-    max-height: 300px; 
-    /* (2) 위아래 패딩을 줘서 자연스럽게 펼쳐지게 함 */
-    padding: 1.5rem 1rem 0 1rem; 
+.choice-btn:hover {
+  background: #e0e0e0;
 }
-
-.expansion-btn {
-  width: 100%; padding: 10px; background: #f1f1f1; border: none;
-  border-radius: 8px; cursor: pointer;
-}
-.expansion-btn:hover { background: #e0e0e0; }
-
-.expansion-btn-search {
-  padding: 0 15px; background: #0073e6; color: white;
-  border: none; border-radius: 8px; cursor: pointer;
-}
-
 
 /* 챗봇 버튼 */
 .chat-btn {
