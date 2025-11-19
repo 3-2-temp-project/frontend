@@ -1,9 +1,12 @@
 const express = require('express');
-const { Pool } = require('pg'); // ✨ mysql2 대신 pg 사용
+const { Pool } = require('pg');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:3000', // 프론트엔드 주소 (마지막에 슬래시 / 없음)
+    credentials: true                // 쿠키/세션 허용
+}));
 app.use(express.json());
 
 // ✨ 1. 데이터베이스 연결 설정 (PostgreSQL)
@@ -28,7 +31,7 @@ pool.connect((err) => {
 
 // ✨ 2. API 만들기: GET /restaurants/markers
 app.get('/restaurants/markers', (req, res) => {
-    const sql = "SELECT * FROM restaurants_info";
+    const sql = "SELECT * FROM restaurant_info";
     
     pool.query(sql, (err, result) => {
         if (err) {
@@ -49,7 +52,7 @@ app.get('/restaurant/detail', (req, res) => {
     
     // ✨ PostgreSQL은 물음표(?) 대신 $1, $2 문법을 씁니다.
     // (여기서는 예시로 좌표로 찾지만, 실제로는 ID로 찾는게 좋습니다)
-    const sql = "SELECT * FROM restaurants_info WHERE lat = $1 AND lng = $2";
+    const sql = "SELECT * FROM restaurant_info WHERE lat = $1 AND lng = $2";
     
     pool.query(sql, [lat, lng], (err, result) => {
         if (err) {
@@ -65,7 +68,7 @@ app.get('/restaurant/detail', (req, res) => {
 app.get('/restaurants/nearby', (req, res) => {
     // ... 반경 검색 로직 ...
     // 일단은 전체 리스트를 주는 걸로 테스트 해보세요
-    const sql = "SELECT * FROM restaurants_info LIMIT 10"; 
+    const sql = "SELECT * FROM restaurant_info LIMIT 10"; 
     pool.query(sql, (err, result) => {
         if (err) res.status(500).send(err);
         else res.send(result.rows);
@@ -110,6 +113,15 @@ app.post('/reviews', (req, res) => {
     });
 });
 
+// ✨ 위치 정보 저장 API (POST /location)
+app.post('/location', (req, res) => {
+    const { lat, lng } = req.body;
+    console.log("📍 사용자 위치 수신:", lat, lng);
+    
+    // (나중에 여기에 세션 저장 로직을 추가할 수 있습니다)
+    // 지금은 성공했다는 응답만 바로 보내줍니다.
+    res.json({ message: "Location saved successfully" });
+});
 
 app.listen(5000, () => {
     console.log('🚀 백엔드 서버가 5000번 포트에서 실행 중입니다.');

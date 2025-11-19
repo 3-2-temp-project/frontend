@@ -141,6 +141,7 @@ function Main() {
         if (!kakaoResponse.ok) throw new Error('Kakao API 호출 실패');
             
         const data = await kakaoResponse.json();
+        console.log("카카오 API 응답:", data);
         if (data.documents.length === 0) {
             setSearchError("유효한 주소를 찾을 수 없습니다.");
             return;
@@ -152,12 +153,16 @@ function Main() {
         const province = doc.address.region_1depth_name; // 예: "경기도"
         const district = doc.address.region_2depth_name; // 예: "화성시"
 
+        console.log("검색된 지역:", province, district);
+
         // 유효성 검사 (map.js의 PROVINCES와 동일해야 함)
+        /*
         const ALLOWED_PROVINCES = ["서울특별시", "경기도"];
         if (!ALLOWED_PROVINCES.includes(province)) {
             setSearchError("선택할 수 없는 지역입니다. (서울/경기만 가능)");
             return;
         }
+        */
             
         // 서버 세션에 *검색된* 위치 저장
         const serverResponse = await fetch(`${API_BASE_URL}/location`, {
@@ -168,6 +173,7 @@ function Main() {
         if (!serverResponse.ok) throw new Error('서버 위치 저장 실패');
 
         // Map.js로 이동 (address 모드 + 콤보박스 초기값 전달)
+        console.log("Map 페이지로 이동합니다!"); // 로그 확인
         navigate('/map', { 
             state: { 
                 source: 'address',

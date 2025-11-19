@@ -162,7 +162,7 @@
     left: 20px;         /* 왼쪽에서 20px 띄움 */
     
     /* ✨ 가로 너비: .Map의 padding(좌20+우20)을 뺀 100% */
-    width: calc(100% - 40px); 
+    width: calc(60% - 40px); 
     height: 200px;      /* 높이 200px (조절 가능) */
     
     background: white;

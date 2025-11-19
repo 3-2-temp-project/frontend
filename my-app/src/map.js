@@ -234,7 +234,7 @@ function Map() {
                 marker.markerLat = resto.lat;
                 marker.markerLng = resto.lng;
                 //marker.category = resto.category; // 필요시 사용
-                marker.restaurantId = resto.res_id;
+                marker.restaurantId = resto.res_name;
                 marker.setMap(map);
 
                 // 마커 클릭 리스너가 /detail API를 호출하고 state를 변경
@@ -417,7 +417,7 @@ function Map() {
                                     <p>작성된 리뷰가 없습니다.</p>
                                     <button 
                                         className="review-btn"
-                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_id}`)}
+                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_name}`)}
                                     >
                                         + 리뷰 작성하기
                                     </button>
@@ -433,7 +433,7 @@ function Map() {
                                     ))}
                                     <button 
                                         className="review-btn"
-                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_id}`)}
+                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_name}`)}
                                     >
                                         리뷰 더보기 ({selectedRestaurant.review_count}개)
                                     </button>
@@ -473,11 +473,11 @@ function Map() {
                     
                     {nearbyList.map(restaurant => (
                         <div
-                            key={restaurant.res_id}
+                            key={restaurant.res_name}
                             onClick={() => handleRestaurantClick(restaurant)}
                             className="list-item" 
                         >
-                            <h3>{restaurant.name}</h3> 
+                            <h3>{restaurant.res_name}</h3> 
                             <p>{restaurant.category}</p>
                         </div>
                     ))}
