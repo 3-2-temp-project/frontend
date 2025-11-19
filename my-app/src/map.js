@@ -2,6 +2,26 @@ import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import "./map.css";
 
+const API_BASE = "http://localhost:5000"; 
+async function apiGet(path) {
+    const res = await fetch(`${API_BASE}${path}`, {
+        method: "GET",
+        credentials: "include", // 세션 유지를 위해 필수
+    });
+    if (!res.ok) throw new Error(`API GET Error: ${res.status}`);
+    return res.json();
+}
+async function apiPost(path, body) {
+    const res = await fetch(`${API_BASE}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // 세션 유지를 위해 필수
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`API POST Error: ${res.status}`);
+    return res.json();
+}
+
 const API_BASE_URL = 'http://localhost:5000';
 
 function Map() {
@@ -14,19 +34,61 @@ function Map() {
     // 위치 정보 데이터
     const PROVINCES = ["서울특별시", "경기도"];
     const DISTRICTS_BY_PROVINCE = {
-        "서울특별시": ["은평구"],
-        "경기도": ["화성시 와우리", "수원시 팔달구", "수원시 장안구"],
-    };
-    const LOCATION_COORDS = {
-        "서울특별시 은평구": { lat: 37.6027, lng: 126.9292 }, // 은평구청 근처
-        "경기도 화성시 와우리": { lat: 37.2092, lng: 126.9769 }, // 화성시청 근처
-        "경기도 수원시 팔달구": { lat: 37.2920, lng: 127.0107 }, // 수원시청 근처
-        "경기도 수원시 장안구": { lat: 37.2951, lng: 126.9739 },
-    };
+    "서울특별시": [
+      "은평구",
+      "영등포구",
+      "용산구",
+      "동대문구",
+      "동작구",
+      "광진구",
+      "마포구",
+      "서초구",
+      "강동구",
+      "성북구",
+      "도봉구",
+      "노원구",
+      "강서구",
+      "양천구",
+      "구로구",
+      "금천구",
+      "송파구",
+      "강남구",
+    ],
+    "경기도": ["화성시 와우리", "수원시 팔달구", "수원시 장안구", "수원시"],
+  };
+
+  // 위치 좌표 데이터
+  const LOCATION_COORDS = {
+    // --- 서울 ---
+    "서울특별시 은평구": { lat: 37.6027, lng: 126.9292 },
+    "서울특별시 영등포구": { lat: 37.5263, lng: 126.8962 },
+    "서울특별시 용산구": { lat: 37.5311, lng: 126.9819 },
+    "서울특별시 동대문구": { lat: 37.5744, lng: 127.0396 },
+    "서울특별시 동작구": { lat: 37.5124, lng: 126.9398 },
+    "서울특별시 광진구": { lat: 37.5384, lng: 127.0822 },
+    "서울특별시 마포구": { lat: 37.5609, lng: 126.9084 },
+    "서울특별시 서초구": { lat: 37.4836, lng: 127.0327 },
+    "서울특별시 강동구": { lat: 37.5301, lng: 127.1238 },
+    "서울특별시 성북구": { lat: 37.5894, lng: 127.0167 },
+    "서울특별시 도봉구": { lat: 37.6688, lng: 127.0471 },
+    "서울특별시 노원구": { lat: 37.6543, lng: 127.0565 },
+    "서울특별시 강서구": { lat: 37.5509, lng: 126.849 },
+    "서울특별시 양천구": { lat: 37.5169, lng: 126.8664 },
+    "서울특별시 구로구": { lat: 37.4954, lng: 126.8874 },
+    "서울특별시 금천구": { lat: 37.4568, lng: 126.895 },
+    "서울특별시 송파구": { lat: 37.5145, lng: 127.1066 },
+    "서울특별시 강남구": { lat: 37.5173, lng: 127.0473 },
+
+    // --- 경기 ---
+    "경기도 화성시 와우리": { lat: 37.2092, lng: 126.9769 },
+    "경기도 수원시 팔달구": { lat: 37.292, lng: 127.0107 },
+    "경기도 수원시 장안구": { lat: 37.2951, lng: 126.9739 },
+    "경기도 수원시": { lat: 37.2636, lng: 127.0286 },
+  };
     //const foodCategories = ["전체", "한식", "중식", "일식", "양식", "카페"];
 
 
-    // --- (1) State 정의 ---
+    // --- State 정의 ---
     const source = location.state?.source; // 'geolocation', 'address', 'chatbot'
     const urlLat = searchParams.get('lat');
     const urlLng = searchParams.get('lng');
@@ -52,10 +114,7 @@ function Map() {
     const fetchNearbyRestaurants = async () => {
         setIsLoading(true);
         try {
-            // (세션에 저장된 최신 lat/lng를 자동으로 사용함)
-            const response = await fetch(`${API_BASE_URL}/restaurants/nearby?radius=${radius}`);
-            if (!response.ok) throw new Error('주변 식당 로딩 실패');
-            const listData = await response.json();
+            const listData = await apiGet(`/restaurants/nearby?radius=${radius}`);
             setNearbyList(listData);
         } catch (error) {
             console.error(error);
@@ -63,54 +122,6 @@ function Map() {
             setIsLoading(false);
         }
     };
-
-    /*
-    // 이벤트 핸들러
-    const handleProvinceChange = (e) => {
-        const newProvince = e.target.value;
-        setSelectedProvince(newProvince);
-        
-        // 'all'을 선택하면 두 번째 콤보박스도 'all'로 설정
-        if (newProvince === "all") {
-            setSelectedDistrict("all");
-        } else {
-            // 다른 시/도를 선택하면 해당 지역의 첫 번째 구/군으로 설정
-            const newDistricts = DISTRICTS_BY_PROVINCE[newProvince];
-            if (newDistricts && newDistricts.length > 0) {
-                setSelectedDistrict(newDistricts[0]);
-            }
-        }
-    };
-
-    // 식당 리스트 클릭 시 지도 이동 및 정보창 표시 핸들러
-    const handleRestaurantClick = (restaurant) => {
-        if (!mapInstance || !infowindow) return;
-
-        const { lat, lng } = restaurant;
-        const moveLatLng = new window.kakao.maps.LatLng(lat, lng);
-
-        // 지도의 중심을 부드럽게 이동시킵니다.
-        mapInstance.panTo(moveLatLng);
-
-        // 해당 식당의 마커를 찾습니다.
-        const targetMarker = markers.find(marker =>
-            marker.getPosition().getLat() === lat && marker.getPosition().getLng() === lng
-        );
-
-        if (targetMarker) {
-            const content = `
-                <div style="padding:15px; width:280px; font-family: 'Malgun Gothic', sans-serif;">
-                    <h4 style="margin:0 0 8px 0; font-size:16px;">${restaurant.name}</h4>
-                    <p style="font-size:12px; margin:0 0 4px 0; color:#666;"><strong>카테고리:</strong> ${restaurant.category}</p>
-                    <p style="font-size:12px; margin:0 0 4px 0; color:#666;"><strong>주소:</strong> ${restaurant.address}</p>
-                    <p style="font-size:12px; margin:0; color:#666;"><strong>전화번호:</strong> ${restaurant.phone}</p>
-                </div>
-            `;
-            infowindow.setContent(content);
-            infowindow.open(mapInstance, targetMarker);
-        }
-    };
-    */
 
     // 1. (수정) 메인 useEffect: 지도 초기화 및 *모든 마커* 로딩
     useEffect(() => {
@@ -125,11 +136,7 @@ function Map() {
         const fetchMarkersAndInitMap = async () => {
             setIsLoading(true);
             try {
-                // GET /restaurants/markers API 호출
-                const response = await fetch(`${API_BASE_URL}/restaurants/markers`);
-                if (!response.ok) throw new Error('Failed to fetch markers');
-                const markerData = await response.json();
-
+                const markerData = await apiGet("/restaurants/markers");
                 if (window.kakao && window.kakao.maps) {
                     window.kakao.maps.load(() => initMap(markerData, targetCoords));
                 } else {
@@ -143,7 +150,7 @@ function Map() {
                     
                 }
 
-                // ✨ 챗봇으로 진입한 게 아닐 때만 초기 리스트 로딩
+                // 챗봇으로 진입한 게 아닐 때만 초기 리스트 로딩
                 if (source !== 'chatbot') {
                     await fetchNearbyRestaurants();
                 }
@@ -184,6 +191,29 @@ function Map() {
             setNearbyList(chatbotRestaurants);
         }
     }, [source, chatbotRestaurants]);
+
+    // 4. 콤보박스 변경 시 지도 이동
+    // (지도 중심 이동 + 하단 패널 닫기)
+    useEffect(() => {
+        if (!mapInstance) return;
+
+        let targetCoords;
+        if (selectedProvince === "all" && urlLat && urlLng) {
+            // (님의 'geolocation' 모드)
+            targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
+        } else {
+            // (팀원/님의 '주소 지정' 모드)
+            const currentKey = `${selectedProvince} ${selectedDistrict}`;
+            targetCoords = LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
+        }
+        
+        const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
+        mapInstance.setCenter(center);
+        
+        // (추가) 콤보박스 조작 시, 열려있던 하단 패널을 닫습니다.
+        setSelectedRestaurant(null); 
+
+    }, [mapInstance, selectedProvince, selectedDistrict, urlLat, urlLng]);
     
 
     // --- (4) 지도 초기화 및 이벤트 핸들러 ---
@@ -204,7 +234,7 @@ function Map() {
                 marker.markerLat = resto.lat;
                 marker.markerLng = resto.lng;
                 //marker.category = resto.category; // 필요시 사용
-                marker.restaurantId = resto.id;
+                marker.restaurantId = resto.res_id;
                 marker.setMap(map);
 
                 // 마커 클릭 리스너가 /detail API를 호출하고 state를 변경
@@ -213,11 +243,7 @@ function Map() {
                 map.panTo(markerPosition);
 
                 try {
-                    const detailResponse = await fetch(`${API_BASE_URL}/restaurant/detail?lat=${marker.markerLat}&lng=${marker.markerLng}`);
-                    if (!detailResponse.ok) throw new Error('Failed to fetch detail');
-                    const detailData = await detailResponse.json(); // {name, address, phone...}
-
-                    //API로 받아온 상세 정보(리뷰 포함)를 state에 저장
+                    const detailData = await apiGet(`/restaurant/detail?lat=${marker.markerLat}&lng=${marker.markerLng}`);
                     setSelectedRestaurant(detailData);
 
                     } catch (error) {
@@ -242,18 +268,11 @@ function Map() {
         const lat = newCenter.getLat();
         const lng = newCenter.getLng();
 
-        // 1. 세션 위치 업데이트
-        await fetch(`${API_BASE_URL}/location`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lat, lng }),
-        });
+        await apiPost("/location", { lat, lng });
         
-        // 2. 콤보박스 'all'로 리셋
         setSelectedProvince("all");
         setSelectedDistrict("all");
 
-        // 3. 새 위치 기준으로 주변 식당 리스트 갱신
         await fetchNearbyRestaurants();
     };
 
@@ -285,7 +304,7 @@ function Map() {
         }
     };
     
-    // 콤보박스 변경 시 (콤보박스 로직은 이제 지도 이동만 담당)
+    // 콤보박스 변경 시
     const handleProvinceChange = (e) => {
         const newProvince = e.target.value;
         setSelectedProvince(newProvince);
@@ -304,19 +323,16 @@ function Map() {
     
     // 사이드바 리스트 클릭 시
     const handleRestaurantClick = async (restaurant) => {
-        if (!mapInstance || !infowindow) return;
+        if (!mapInstance) return;
+        setIsLoading(true);
 
         const { lat, lng } = restaurant; // nearbyList에서 온 데이터
         const moveLatLng = new window.kakao.maps.LatLng(lat, lng);
         mapInstance.panTo(moveLatLng);
 
         try {
-            // ✨ 리스트 클릭 시에도 /detail API를 호출 (리뷰 데이터를 가져오기 위해)
-            const detailResponse = await fetch(`${API_BASE_URL}/restaurant/detail?lat=${lat}&lng=${lng}`);
-            if (!detailResponse.ok) throw new Error('Failed to fetch detail');
-            const detailData = await detailResponse.json();
-
-            // ✨ API로 받아온 상세 정보를 state에 저장
+            // 리스트 클릭 시에도 /detail API를 호출 (리뷰 데이터를 가져오기 위해)
+            const detailData = await apiGet(`/restaurant/detail?lat=${lat}&lng=${lng}`);
             setSelectedRestaurant(detailData);
 
         } catch (error) {
@@ -333,6 +349,10 @@ function Map() {
             {/* (A) 왼쪽: 지도 및 위치 선택 영역 */}
             <div className="Map">
                 <div className="map-controls">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="back-btn"
+                    >뒤로가기</button>
                     <h1>현재 위치:</h1>
                     
                     {/* 시/도 콤보박스 */}
@@ -374,7 +394,6 @@ function Map() {
                 {/* 하단 상세정보 패널 */}
                 {selectedRestaurant && (
                     <div className="detail-panel">
-                        {/* 닫기 버튼 */}
                         <button 
                             className="close-btn" 
                             onClick={() => setSelectedRestaurant(null)}
@@ -382,15 +401,14 @@ function Map() {
                             X
                         </button>
                         
-                        {/* (A) 60% 정보 영역 */}
                         <div className="info-section">
                             <h3>{selectedRestaurant.name}</h3>
-                            <p><strong>주소:</strong> {selectedRestaurant.address}</p>
-                            <p><strong>전화번호:</strong> {selectedRestaurant.phone}</p>
-                            <p><strong>카테고리:</strong> {selectedRestaurant.category}</p>
+                            <p><strong>주소:</strong> {selectedRestaurant.address || "-"}</p>
+                            <p><strong>전화번호:</strong> {selectedRestaurant.phone || "-"}</p>
+                            <p><strong>카테고리:</strong> {selectedRestaurant.category || "-"}</p>
+                            <p><strong>평점:</strong> {selectedRestaurant.score ?? "-"}</p>
                         </div>
 
-                        {/* (B) 40% 리뷰 영역 */}
                         <div className="review-section">
                             <h4>리뷰</h4>
                             {(!selectedRestaurant.reviews || selectedRestaurant.reviews.length === 0) ? (
@@ -399,7 +417,7 @@ function Map() {
                                     <p>작성된 리뷰가 없습니다.</p>
                                     <button 
                                         className="review-btn"
-                                        onClick={() => navigate(`/reviews/${selectedRestaurant.id}`)}
+                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_id}`)}
                                     >
                                         + 리뷰 작성하기
                                     </button>
@@ -415,7 +433,7 @@ function Map() {
                                     ))}
                                     <button 
                                         className="review-btn"
-                                        onClick={() => navigate(`/reviews/${selectedRestaurant.id}`)}
+                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_id}`)}
                                     >
                                         리뷰 더보기 ({selectedRestaurant.review_count}개)
                                     </button>
@@ -427,7 +445,7 @@ function Map() {
 
             </div>
 
-            {/* (B) 오른쪽: 필터 및 식당 리스트 영역 */}
+            {/* 식당 리스트 영역 */}
             <div className="Sidebar">
                 {source !== 'chatbot' && (
                     <div className="RadiusFilter">
@@ -455,11 +473,11 @@ function Map() {
                     
                     {nearbyList.map(restaurant => (
                         <div
-                            key={restaurant.id} 
+                            key={restaurant.res_id}
                             onClick={() => handleRestaurantClick(restaurant)}
                             className="list-item" 
                         >
-                            <h3>{restaurant.name}</h3>
+                            <h3>{restaurant.name}</h3> 
                             <p>{restaurant.category}</p>
                         </div>
                     ))}

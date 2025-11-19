@@ -9,7 +9,11 @@ function Main() {
   const [chatOpen, setChatOpen] = useState(false);
   const navigate = useNavigate();
 
-  //'식당 찾기' 모달 상태와 주소 입력값 state 추가
+  useEffect(() => {
+    localStorage.removeItem("chatSessionId");
+  }, []);
+
+  //'식당 찾기'
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [addressInput, setAddressInput] = useState('');
   const [searchError, setSearchError] = useState('');
@@ -104,10 +108,14 @@ function Main() {
             } catch (error) {
                 console.error("위치 정보 전송 오류:", error);
                 alert("서버 통신 오류가 발생했습니다.");
+                navigate(`/map?lat=${lat}&lng=${lng}`, { 
+                    state: { source: 'geolocation' } 
+                });
             }
         },
         (error) => {
             alert("위치 정보를 가져올 수 없습니다.");
+            navigate('/map', { state: { source: 'geolocation' } });
         }
     );
   };
@@ -121,7 +129,7 @@ function Main() {
     setSearchError('');
 
     //Kakao 주소 검색 API 호출 (반드시 본인의 REST API 키 사용)
-    const KAKAO_API_KEY = "920ae06c68357b930c999434271d8194"; // 👈 여기에 본인 키를 넣으세요!
+    const KAKAO_API_KEY = "cb5e37cbdbc7daee55c8160e0c2da967";
         
     try {
         const kakaoResponse = await fetch(
@@ -171,18 +179,18 @@ function Main() {
     } catch (error) {
         console.error("주소 검색 오류:", error);
         setSearchError(error.message);
+        alert(`주소 검색 오류: ${error.message}\n기본 지도로 이동합니다.`);
+        navigate('/map', { state: { source: 'address' } });
     }
   };
   
 
   return (
     <div className="main-container">
-      <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10}}>
-          <Link to="/login" style={{ 
-              marginRight: '15px', textDecoration: 'none', color: '#333'}}>
-                로그인</Link>
-          <Link to="/register" style={{ textDecoration: 'none', color: '#333' }}>
-              회원가입</Link>
+      <div className="top-nav">
+        <Link to="/me">내 정보</Link>
+        <Link to="/login">로그인</Link>
+        <Link to="/register">회원가입</Link>
       </div>
       <div className={`card ${chatOpen ? "card-shift" : ""} ${isSearchOpen ? "search-open" : ""}`}>
         <span className="badge">공무원 인증</span>
@@ -287,9 +295,6 @@ function Main() {
     <button onClick={() => setChatOpen(!chatOpen)} className="chat-btn">
       💬
     </button>
-    <Link to="/map">
-      <button>Test Map</button>
-    </Link>
     
   </div>
   );

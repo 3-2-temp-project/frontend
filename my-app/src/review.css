@@ -1,0 +1,138 @@
+/* review.css */
+
+.review-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    min-height: 100vh;
+    font-family: 'SUIT-Medium', sans-serif;
+}
+
+.review-container.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    color: #666;
+}
+
+/* 1. 상단 헤더 */
+.review-header {
+    margin-bottom: 20px;
+}
+.back-btn {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #555;
+    margin-bottom: 10px;
+}
+.restaurant-summary h2 {
+    margin: 0 0 5px 0;
+    color: #0073e6;
+}
+.restaurant-summary p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* 2. 리뷰 작성 카드 */
+.review-form-card {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+    border: 1px solid #eee;
+}
+.review-form-card h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+/* 별점 입력 스타일 */
+.star-rating-input {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.star-rating-input .star {
+    font-size: 2rem;
+    color: #ddd; /* 빈 별 색상 */
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.star-rating-input .star.filled {
+    color: #ffc107; /* 채워진 별 색상 (노란색) */
+}
+.star-rating-input .rating-score {
+    margin-left: 10px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.review-textarea {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    resize: none; /* 크기 조절 불가 */
+    margin-bottom: 10px;
+    font-family: inherit;
+}
+
+.submit-review-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #0073e6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+.submit-review-btn:hover {
+    background-color: #0056b3;
+}
+
+/* 3. 리뷰 목록 */
+.review-list-section h3 {
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+.review-item {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #eee;
+}
+.review-item-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.review-author {
+    font-weight: bold;
+    color: #333;
+}
+.review-score {
+    color: #ffc107;
+}
+.review-content {
+    margin: 0;
+    color: #555;
+    line-height: 1.4;
+}
+.no-reviews {
+    text-align: center;
+    color: #888;
+    padding: 20px;
+}

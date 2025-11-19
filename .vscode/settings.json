@@ -1,0 +1,15 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "112.167.154.185",
+            "port": 54320,
+            "driver": "PostgreSQL",
+            "name": "dyDB",
+            "database": "project25",
+            "username": "suwon",
+            "password": "12341234"
+        }
+    ]
+}

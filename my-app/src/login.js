@@ -1,67 +1,90 @@
+// src/login.js
 import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
-import './login.css';
+import "./login.css";
+import { login } from "./authApi";
+import { useNavigate } from "react-router-dom";
+
 function Login() {
-    // ✨ 2. useLocation 훅을 사용해 Register.js가 보낸 state를 받음
-    const location = useLocation();
+  const navigate = useNavigate();
 
-    // ✨ 3. useState의 초기값으로 Register.js에서 받은 값을 사용
-    // location.state가 존재하고, 그 안에 userId가 있으면 그 값을, 없으면 빈 문자열('')을 사용
-    const [userId, setUserId] = useState(location.state?.userId || '');
-    const [password, setPassword] = useState(location.state?.password || '');
-    
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError('');
-        // (로그인 API 호출 로직 ... )
-        try {
-            // const response = await fetch(`${API_BASE_URL}/auth/login`, ...);
-            // ...
-            // navigate('/main'); // 로그인 성공 시 메인 지도로 이동
-        } catch (err) {
-            setError("로그인에 실패했습니다.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  const handleLogin = async () => {
+    if (!userId || !password) {
+      alert("아이디와 비밀번호를 모두 입력해주세요.");
+      return;
+    }
 
-    return (
-        <div className="login-page">
-            <form onSubmit={handleLogin}>
-                <h1 className="login-title">로그인</h1>
-                <div className="login-inputs">
-                    <div>
-                        <h5>아이디</h5>
-                        <input 
-                            type="text" 
-                            placeholder="아이디(example@naver.com)"
-                            className="input-field" 
-                            value={userId}
-                            onChange={(e) => setUserId(e.target.value)} 
-                        />
-                    </div>
-                    <div>
-                        <h5>비밀번호</h5>
-                        <input 
-                            type="password" 
-                            placeholder="비밀번호"
-                            className="input-field"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)} 
-                        />
-                    </div>
-                </div>
-                <div className="error-message">{error}</div>
-                <button type="submit" className="submit-btn" disabled={isLoading}>
-                    {isLoading ? "로그인 중..." : "로그인"}
-                </button>
-            </form>
+    try {
+      setLoading(true);
+      const res = await login(userId, password);
+      alert(res.message || "로그인 성공!");
+
+      // 로그인 성공 후 내 정보 페이지로 이동
+      navigate("/me");
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "로그인에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-wrapper">
+      <div className="auth-card">
+        {/* 🔙 뒤로 가기 버튼 */}
+        <button
+          type="button"
+          className="back-btn"
+          onClick={() => navigate("/")}
+        >
+          ← 메인으로
+        </button>
+
+        <h1 className="auth-title">로그인</h1>
+        <p className="auth-subtitle">아이디와 비밀번호를 입력하세요</p>
+
+        <div className="form-group">
+          <label className="form-label">아이디</label>
+          <div className="input-wrapper">
+            <span className="input-icon">🔖</span>
+            <input
+              className="auth-input"
+              placeholder="user_id"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            />
+          </div>
         </div>
-    );
+
+        <div className="form-group">
+          <label className="form-label">비밀번호</label>
+          <div className="input-wrapper">
+            <span className="input-icon">🔒</span>
+            <input
+              type="password"
+              className="auth-input"
+              placeholder="비밀번호"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="submit-btn"
+          onClick={handleLogin}
+          disabled={loading}
+        >
+          {loading ? "로그인 중..." : "로그인"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default Login;

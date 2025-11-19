@@ -70,6 +70,17 @@
     font-family: 'SUIT-Medium', sans-serif;
 }
 
+.back-btn {
+    padding: 8px 12px;
+    background: #eee;
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'SUIT-Medium', sans-serif;
+    margin-right: 20px;
+}
 
 /* 오른쪽 (사이드바) 영역 */
 .Sidebar {
