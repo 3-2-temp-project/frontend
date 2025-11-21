@@ -276,32 +276,43 @@ function Map() {
         await fetchNearbyRestaurants();
     };
 
-    // (신규) "현위치로" 버튼 클릭 시
+    // "현위치로" 버튼 클릭 시
     const handleGoToCurrentLocation = () => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(async (position) => {
+        if (!navigator.geolocation) {
+            alert("위치 정보를 사용할 수 없습니다.");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                const newPos = new window.kakao.maps.LatLng(lat, lng);
 
-                // 1. 세션 위치 업데이트
-                await fetch(`${API_BASE_URL}/location`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lat, lng }),
-                });
+                try {
+                    // 1. 서버 세션에 현위치 업데이트 (apiPost 함수 사용)
+                    await apiPost("/location", { lat, lng });
 
-                // 2. 지도 이동
-                mapInstance.panTo(newPos);
-                
-                // 3. 콤보박스 'all'로 리셋
-                setSelectedProvince("all");
-                setSelectedDistrict("all");
+                    // 2. ✨ [핵심] URL을 변경하여 'Geolocation 모드'로 강제 전환
+                    // navigate를 쓰면 useSearchParams와 useLocation이 갱신되면서
+                    // useEffect들이 알아서 지도를 이동시키고 식당 리스트를 새로 불러옵니다.
+                    navigate(`/map?lat=${lat}&lng=${lng}`, { 
+                        state: { source: 'geolocation' }, // 소스를 'geolocation'으로 변경
+                        replace: true // 뒤로가기 기록 꼬임 방지
+                    });
+                    
+                    // 3. 콤보박스 UI 즉시 초기화
+                    setSelectedProvince("all");
+                    setSelectedDistrict("all");
 
-                // 4. 새 위치 기준으로 주변 식당 리스트 갱신
-                await fetchNearbyRestaurants();
-            });
-        }
+                } catch (error) {
+                    console.error("현위치 업데이트 실패:", error);
+                }
+            },
+            (error) => {
+                console.error("Geolocation Error:", error);
+                alert("현위치를 가져올 수 없습니다.");
+            }
+        );
     };
     
     // 콤보박스 변경 시
