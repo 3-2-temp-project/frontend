@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import "./map.css";
 
-const API_BASE = "http://localhost:5000"; 
+const API_BASE = "http://localhost:5001"; 
 async function apiGet(path) {
     const res = await fetch(`${API_BASE}${path}`, {
         method: "GET",
@@ -22,7 +22,7 @@ async function apiPost(path, body) {
     return res.json();
 }
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'http://localhost:5001';
 
 function Map() {
 
@@ -402,7 +402,7 @@ function Map() {
                         </button>
                         
                         <div className="info-section">
-                            <h3>{selectedRestaurant.name}</h3>
+                            <h3>{selectedRestaurant.res_name}</h3>
                             <p><strong>주소:</strong> {selectedRestaurant.address || "-"}</p>
                             <p><strong>전화번호:</strong> {selectedRestaurant.phone || "-"}</p>
                             <p><strong>카테고리:</strong> {selectedRestaurant.category || "-"}</p>

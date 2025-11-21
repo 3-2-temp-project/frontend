@@ -123,6 +123,6 @@ app.post('/location', (req, res) => {
     res.json({ message: "Location saved successfully" });
 });
 
-app.listen(5000, () => {
-    console.log('🚀 백엔드 서버가 5000번 포트에서 실행 중입니다.');
+app.listen(5001, () => {
+    console.log('🚀 백엔드 서버가 5001번 포트에서 실행 중입니다.');
 });

@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import "./main.css";
 import { askChat } from './chat';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'http://localhost:5001';
 
 function Main() {
   const [chatOpen, setChatOpen] = useState(false);
