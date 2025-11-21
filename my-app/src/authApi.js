@@ -55,6 +55,10 @@ export async function signup(form) {
   return handleJsonResponse(res);
 }
 
+// =========================
+// 로그인 / 로그아웃 / 내 정보
+// =========================
+
 // 4) 로그인
 export async function login(user_id, password) {
   const res = await fetch(`${API_BASE}/login`, {
