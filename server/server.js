@@ -45,15 +45,17 @@ app.get('/restaurants/markers', (req, res) => {
 });
 
 
-// ✨ 3. API 만들기: GET /restaurant/detail
+// 상세 정보 조회 (좌표 대신 'id' 사용)
 app.get('/restaurant/detail', (req, res) => {
-    const lat = req.query.lat;
-    const lng = req.query.lng;
+    //const lat = req.query.lat;
+    //const lng = req.query.lng;
+    const id = req.query.id;
     
     // ✨ PostgreSQL은 물음표(?) 대신 $1, $2 문법을 씁니다.
     // (여기서는 예시로 좌표로 찾지만, 실제로는 ID로 찾는게 좋습니다)
-    const sql = "SELECT * FROM restaurant_info WHERE lat = $1 AND lng = $2";
-    
+    //const sql = "SELECT * FROM restaurant_info WHERE lat = $1 AND lng = $2";
+    const sql = "SELECT * FROM restaurant_info WHERE id = $1";
+    /*
     pool.query(sql, [lat, lng], (err, result) => {
         if (err) {
             res.status(500).send(err);
@@ -61,17 +63,58 @@ app.get('/restaurant/detail', (req, res) => {
             res.send(result.rows[0]); // 1개만 보냄
         }
     });
+    */
+    pool.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send("DB Error");
+        } else if (result.rows.length === 0) {
+            res.status(404).send("식당을 찾을 수 없습니다.");
+        } else {
+            // 리뷰 데이터도 같이 보내주기로 했었죠? (선택사항: 조인하거나 별도 호출)
+            // 일단 식당 정보만 보냅니다. (리뷰는 map.js에서 따로 /reviews 호출해도 됨)
+            // 만약 여기서 리뷰도 같이 주려면 쿼리가 복잡해지니, 
+            // map.js에서 상세정보 API + 리뷰 목록 API 두 개를 부르는 게 낫습니다.
+            res.send(result.rows[0]);
+        }
+    });
 });
 
-// ✨ 4. API 만들기: GET /restaurants/nearby (반경 검색 예시)
-// (PostgreSQL은 거리 계산 함수가 다를 수 있으니 단순 조회로 예시 듭니다)
+// 4.주변 식당 검색 API (거리 계산 + 정렬 적용)
 app.get('/restaurants/nearby', (req, res) => {
-    // ... 반경 검색 로직 ...
-    // 일단은 전체 리스트를 주는 걸로 테스트 해보세요
-    const sql = "SELECT * FROM restaurant_info LIMIT 10"; 
-    pool.query(sql, (err, result) => {
-        if (err) res.status(500).send(err);
-        else res.send(result.rows);
+    const radius = parseFloat(req.query.radius) || 0.5; // 기본 0.5km
+
+    // 1. 세션에서 내 위치 가져오기 (없으면 에러)
+    // 주의: express-session 설정이 되어 있어야 req.session을 쓸 수 있습니다.
+    // 만약 세션 설정이 복잡하다면, 일단 임시로 전역 변수를 쓰거나(비추천),
+    // 프론트엔드에서 요청할 때 lat/lng를 query string으로 보내는 게 더 확실할 수 있습니다.
+    
+    const userLat = req.query.lat; 
+    const userLng = req.query.lng;
+
+    // 위치 정보가 없으면 그냥 빈 배열 반환
+    if (!userLat || !userLng) {return res.json([]);}
+
+    // 2. PostgreSQL의 하버사인 공식(Haversine Formula) 쿼리
+    // 6371 = 지구 반지름(km)
+    // 식당 테이블 이름: restaurant_info
+    // 식당 좌표 컬럼: lat, lng
+    const sql = `
+        SELECT *,
+            (6371 * acos(cos(radians($1)) * cos(radians(lat)) * cos(radians(lng) - radians($2)) + sin(radians($1)) * sin(radians(lat)))) AS distance
+        FROM restaurant_info
+        WHERE (6371 * acos(cos(radians($1)) * cos(radians(lat)) * cos(radians(lng) - radians($2)) + sin(radians($1)) * sin(radians(lat)))) < $3
+        ORDER BY distance ASC
+        LIMIT 50; 
+    `;
+
+    pool.query(sql, [userLat, userLng, radius], (err, result) => {
+        if (err) {
+            console.error("Nearby Error:", err);
+            res.status(500).send("DB Error");
+        } else {
+            res.send(result.rows);
+        }
     });
 });
 

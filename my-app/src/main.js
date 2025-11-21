@@ -150,8 +150,11 @@ function Main() {
         const doc = data.documents[0];
         const lat = doc.y; // 위도
         const lng = doc.x; // 경도
-        const province = doc.address.region_1depth_name; // 예: "경기도"
-        const district = doc.address.region_2depth_name; // 예: "화성시"
+        // [수정]카카오 API의 지역명을 우리 DB/코드 형식에 맞게 변환
+        let province = doc.address.region_1depth_name;
+        if (province === "서울") province = "서울특별시";
+        if (province === "경기") province = "경기도";
+        const district = doc.address.region_2depth_name;
 
         console.log("검색된 지역:", province, district);
 

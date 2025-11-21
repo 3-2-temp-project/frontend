@@ -80,6 +80,7 @@ function Map() {
     "서울특별시 강남구": { lat: 37.5173, lng: 127.0473 },
 
     // --- 경기 ---
+    "경기도 화성시": { lat: 37.2092, lng: 126.9769 },
     "경기도 화성시 와우리": { lat: 37.2092, lng: 126.9769 },
     "경기도 수원시 팔달구": { lat: 37.292, lng: 127.0107 },
     "경기도 수원시 장안구": { lat: 37.2951, lng: 126.9739 },
@@ -95,8 +96,13 @@ function Map() {
     const chatbotRestaurants = location.state?.restaurants;
 
     // 콤보박스 state
-    const initialProvince = urlLat ? "all" : PROVINCES[0];
-    const initialDistrict = urlLat ? "all" : DISTRICTS_BY_PROVINCE[PROVINCES[0]][0];
+    const initialProvince = (source === 'address' && location.state?.province) 
+        ? location.state.province 
+        : (urlLat ? "all" : PROVINCES[0]);
+
+    const initialDistrict = (source === 'address' && location.state?.district) 
+        ? location.state.district 
+        : (urlLat ? "all" : DISTRICTS_BY_PROVINCE[PROVINCES[0]][0]);
 
     const [selectedProvince, setSelectedProvince] = useState(initialProvince);
     const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
@@ -114,8 +120,23 @@ function Map() {
     const fetchNearbyRestaurants = async () => {
         setIsLoading(true);
         try {
-            const listData = await apiGet(`/restaurants/nearby?radius=${radius}`);
+            // 1. 현재 지도의 중심 좌표를 가져옵니다.(기준점)
+            // 만약 mapInstance가 아직 없다면 urlLat, urlLng를 씁니다.
+            let centerLat = urlLat;
+            let centerLng = urlLng;
+
+            if (mapInstance) {
+                const center = mapInstance.getCenter();
+                centerLat = center.getLat();
+                centerLng = center.getLng();
+            }
+
+            if (!centerLat || !centerLng) return; // 좌표 없으면 중단
+
+            // 2. URL에 lat, lng를 같이 붙여서 보냅니다.
+            const listData = await apiGet(`/restaurants/nearby?radius=${radius}&lat=${centerLat}&lng=${centerLng}`);            
             setNearbyList(listData);
+
         } catch (error) {
             console.error(error);
         } finally {
@@ -123,12 +144,29 @@ function Map() {
         }
     };
 
-    // 1. (수정) 메인 useEffect: 지도 초기화 및 *모든 마커* 로딩
+    // 메인 useEffect: 지도 초기화 및 *모든 마커* 로딩
     useEffect(() => {
+        console.log("현재 소스:", source); // 'address'가 떠야 함
+        console.log("받은 지역:", selectedProvince, selectedDistrict); // '경기도', '화성시'가 떠야 함
+        console.log("URL 좌표:", urlLat, urlLng);
+
         let targetCoords;
         if (source === 'geolocation' && urlLat && urlLng) {
             targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
-        } else {
+        }
+        else if (source === 'address') {
+             // ✨ 여기가 실행되어야 합니다.
+             const currentKey = `${selectedProvince} ${selectedDistrict}`;
+             console.log("찾으려는 키:", currentKey); // "경기도 화성시"가 찍히는지 확인
+             
+             targetCoords = LOCATION_COORDS[currentKey];
+             
+             if (!targetCoords) {
+                 console.warn("좌표를 찾을 수 없어 기본값(은평구)을 사용합니다.");
+                 targetCoords = LOCATION_COORDS["서울특별시 은평구"];
+             }
+        }
+        else {
             const currentKey = `${selectedProvince} ${selectedDistrict}`;
             targetCoords = LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
         }
@@ -166,7 +204,7 @@ function Map() {
         fetchMarkersAndInitMap();
     }, []); // 최초 1회만 실행
 
-    // 2. (신규) '반경(radius)'이 바뀔 때마다 주변 식당 리스트 갱신
+    // '반경(radius)'이 바뀔 때마다 주변 식당 리스트 갱신
     useEffect(() => {
         // 맵 로딩이 완료되었고, 챗봇 모드가 아닐 때만 API 호출
         if (mapInstance && source !== 'chatbot') {
@@ -182,7 +220,7 @@ function Map() {
         }
     }, [source, chatbotRestaurants]);
 
-   // ✨ (추가) 챗봇으로 진입 시 nearbyList state 업데이트
+   // 챗봇으로 진입 시 nearbyList state 업데이트
    //이상하면 이 useEffect 지우기
    
     useEffect(() => {
@@ -192,8 +230,7 @@ function Map() {
         }
     }, [source, chatbotRestaurants]);
 
-    // 4. 콤보박스 변경 시 지도 이동
-    // (지도 중심 이동 + 하단 패널 닫기)
+    // 콤보박스 변경 시 지도 이동 (지도 중심 이동 + 하단 패널 닫기)
     useEffect(() => {
         if (!mapInstance) return;
 
@@ -210,10 +247,29 @@ function Map() {
         const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
         mapInstance.setCenter(center);
         
-        // (추가) 콤보박스 조작 시, 열려있던 하단 패널을 닫습니다.
+        // (추가) 콤보박스 조작 시, 열려있던 하단 패널을 닫기
         setSelectedRestaurant(null); 
 
     }, [mapInstance, selectedProvince, selectedDistrict, urlLat, urlLng]);
+
+    // 반경(radius)이 바뀌면 지도 줌 레벨(확대/축소) 변경
+    useEffect(() => {
+        if (!mapInstance) return;
+
+        let level = 4; // 기본 (0.5km일 때 적당)
+        
+        if (radius === 0.5) {
+            level = 5; // 좁은 구역
+        } else if (radius === 1.0) {
+            level = 6; // 중간 구역
+        } else if (radius === 3.0) {
+            level = 8; // 넓은 구역
+        }
+
+        // 부드럽게 줌 레벨 변경
+        mapInstance.setLevel(level, { animate: true });
+        
+    }, [radius, mapInstance]);
     
 
     // --- (4) 지도 초기화 및 이벤트 핸들러 ---
@@ -244,6 +300,14 @@ function Map() {
 
                 try {
                     const detailData = await apiGet(`/restaurant/detail?lat=${marker.markerLat}&lng=${marker.markerLng}`);
+                    
+                    const reviewRes = await apiGet(`/reviews/restaurant${detailData.res_id}`);
+                    if (reviewRes.ok) {
+                        const rjson = await reviewRes.json();
+                        detailData.reviews = rjson.items || [];
+                        detailData.review_count = (rjson.items || []).length;
+                    }
+                    
                     setSelectedRestaurant(detailData);
 
                     } catch (error) {
@@ -428,7 +492,7 @@ function Map() {
                                     <p>작성된 리뷰가 없습니다.</p>
                                     <button 
                                         className="review-btn"
-                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_name}`)}
+                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_id}`)}
                                     >
                                         + 리뷰 작성하기
                                     </button>
@@ -444,7 +508,7 @@ function Map() {
                                     ))}
                                     <button 
                                         className="review-btn"
-                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_name}`)}
+                                        onClick={() => navigate(`/reviews/${selectedRestaurant.res_id}`)}
                                     >
                                         리뷰 더보기 ({selectedRestaurant.review_count}개)
                                     </button>

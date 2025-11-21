@@ -9,7 +9,7 @@
 
 /* 왼쪽 (지도) 영역 */
 .Map {
-    width: 60%;
+    width: 70%;
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -84,7 +84,7 @@
 
 /* 오른쪽 (사이드바) 영역 */
 .Sidebar {
-    width: 40%;
+    width: 30%;
     padding: 20px;
     border-left: 1px solid #eee;
     background: #fdfdfd;
@@ -162,7 +162,7 @@
     left: 20px;         /* 왼쪽에서 20px 띄움 */
     
     /* ✨ 가로 너비: .Map의 padding(좌20+우20)을 뺀 100% */
-    width: calc(60% - 40px); 
+    width: calc(70% - 40px); 
     height: 200px;      /* 높이 200px (조절 가능) */
     
     background: white;

@@ -31,10 +31,10 @@ function Review() {
 
                 // 2. ✨ 이 식당의 리뷰 목록 가져오기
                 // (server.js의 GET /reviews/:res_id API 호출)
-                const resReviews = await fetch(`${API_BASE}/reviews/${id}`);
+                const resReviews = await fetch(`${API_BASE}/reviews/restaurant${id}`);
                 if (resReviews.ok) {
                     const reviewData = await resReviews.json();
-                    setReviews(reviewData);
+                    setReviews(reviewData.items || []); // API 응답 형태에 따라 조정
                 }
 
             } catch (error) {
@@ -59,6 +59,7 @@ function Review() {
             const response = await fetch(`${API_BASE}/reviews`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({
                     res_id: id,      // DB컬럼: res_id
                     user_id: 1,      // DB컬럼: user_id (임시로 1번 유저)
