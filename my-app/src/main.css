@@ -207,3 +207,59 @@
   text-decoration: none;  /* 밑줄 제거 */
   color: #333;            /* 글자 색 */
 }
+
+/* 챗봇 관련 버튼 디자인 */
+
+.button-message {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 말풍선 버튼 */
+.chat-option-btn {
+  padding: 8px 12px;
+  background: #e8f2ff;              /* 밝은 파란색 톤 (기존 테마 유지) */
+  border: 1px solid #c7dfff;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: 0.2s ease;
+  color: #004a99;
+}
+
+.chat-option-btn:hover {
+  background: #d7e8ff;
+  border-color: #b5d3ff;
+}
+
+/* 챗봇 말풍선과 자연스럽게 정렬 */
+.chat-message.left .button-message {
+  align-self: flex-start;
+}
+
+.map-btn {
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: #0073e6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: 0.2s ease;
+}
+
+.map-btn:hover {
+  background: #005bb8;
+}
+
+.chat-message {
+  padding: 10px 14px;
+  border-radius: 12px;
+  max-width: 70%;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: pre-line;
+}

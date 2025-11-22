@@ -1,32 +1,34 @@
-// ✅ 브라우저 새로고침할 때마다 새로운 세션 ID 생성
+// 세션 ID 유지 (리프레시해도 1개 유지)
 let sessionId = localStorage.getItem("chatSessionId");
 
 if (!sessionId) {
-  sessionId = crypto.randomUUID(); // 고유 세션 ID 생성
+  sessionId = crypto.randomUUID();
   localStorage.setItem("chatSessionId", sessionId);
 }
 
+const CHATBOT_URL = "http://localhost:8000";
+
 export async function askChat(message) {
   try {
-    const response = await fetch("http://localhost:5000/chat", {
+    const response = await fetch(`${CHATBOT_URL}/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        session_id: sessionId,
         query: message,
-        session_id: sessionId, // ✅ 고유 세션 ID 사용
       }),
     });
 
-    if (!response.ok) 
-      throw new Error(`서버 오류: ${response.status}`);
+    if (!response.ok) throw new Error(`서버 오류: ${response.status}`);
 
     const data = await response.json();
+
+    // 🔥 answer은 이제 서버에서 제공하지 않음
     return {
-      answer: data.response || data.reply || "응답 없음",
       items: data.items || [],
+      type: data.type || "noop"
     };
+
   } catch (error) {
     console.error("askChat 오류:", error);
     throw error;
