@@ -1,92 +1,208 @@
-.login-page {
+/* 폰트 및 기본 설정 */
+* {
+  box-sizing: border-box;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* 배경 컨테이너 (회원가입 페이지와 동일한 그라데이션) */
+.auth-container {
+  min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100vh;
-  background: #f5f6fa;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  position: relative;
+  padding: 20px;
+  overflow: hidden;
 }
 
-.login-form {
-  width: 360px;
-  padding: 40px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+/* 배경 장식 (Circles) */
+.bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #bfdbfe 0%, #60a5fa 100%);
+  opacity: 0.15;
+  z-index: 0;
 }
+.circle-1 { width: 400px; height: 400px; top: -100px; left: -100px; }
+.circle-2 { width: 300px; height: 300px; bottom: -50px; right: -50px; }
 
-.login-title {
-  text-align: center;
-  margin-bottom: 24px;
-  font-size: 24px;
-  font-weight: 700;
-  color: #333;
-}
-
-label {
-  display: block;
-  margin-bottom: 16px;
-  font-weight: 600;
-  color: #555;
-}
-
-input {
+/* 메인 카드 */
+.auth-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 14px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.4s ease-out;
+}
+
+.login-card-size {
+  max-width: 420px; /* 로그인 카드는 조금 더 좁게 */
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 헤더 영역 */
+.auth-header {
+  background: #ffffff;
+  padding: 40px 30px 20px 30px;
+  text-align: center;
+}
+
+.brand-logo {
+  display: inline-block;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1e40af;
+  text-decoration: none;
+  margin-bottom: 15px;
+}
+.brand-logo span {
+  background: #dbeafe;
+  color: #2563eb;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  font-size: 0.95rem;
+  color: #64748b;
+}
+
+/* 바디 영역 */
+.auth-body {
+  padding: 20px 30px 40px 30px;
+}
+
+/* 입력 필드 */
+.input-group {
+  margin-bottom: 20px;
+}
+.input-group label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
+  z-index: 2;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  transition: all 0.2s;
   outline: none;
 }
-
-input:focus {
-  border-color: #007bff;
+.auth-input.with-icon {
+  padding-left: 45px; /* 아이콘 공간 확보 */
 }
 
-.message {
+.auth-input:focus {
+  background: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.auth-input::placeholder {
+  color: #cbd5e1;
+}
+
+/* 에러 메시지 */
+.error-message {
+  color: #ef4444;
+  font-size: 0.9rem;
   text-align: center;
-  margin: 12px 0;
-  font-size: 14px;
+  margin-bottom: 15px;
+  background: #fef2f2;
+  padding: 10px;
+  border-radius: 8px;
 }
 
-.message.error {
-  color: #e74c3c;
-}
-
-.message.success {
-  color: #007bff;
-}
-
+/* 로그인 버튼 */
 .submit-btn {
   width: 100%;
-  padding: 12px;
-  background: #007bff;
+  padding: 16px;
+  background: #2563eb;
   color: white;
-  font-size: 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
   border: none;
-  border-radius: 10px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: background 0.3s;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transition: transform 0.2s, background 0.2s;
 }
-
 .submit-btn:hover {
-  background: #0056b3;
+  background: #1d4ed8;
+  transform: translateY(-2px);
 }
-
 .submit-btn:disabled {
-  background: #ccc;
+  background: #94a3b8;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-.back-btn {
-  border: none;
-  background: none;
-  color: #888;
-  font-size: 14px;
-  cursor: pointer;
-  margin-bottom: 12px;
-  padding: 0;
+/* 하단 링크 */
+.bottom-links {
+  text-align: center;
+  margin-top: 25px;
+  font-size: 0.95rem;
+  color: #64748b;
+}
+.bottom-links a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 5px;
+}
+.bottom-links a:hover {
+  text-decoration: underline;
 }
 
-.back-btn:hover {
-  color: #333;
+.home-link {
+  text-align: center;
+  margin-top: 15px;
+}
+.home-link a {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.home-link a:hover {
+  color: #64748b;
 }

@@ -1,8 +1,7 @@
-// src/MyInfo.js
 import React, { useEffect, useState } from "react";
 import { getMe, logout } from "./authApi";
-import { useNavigate } from "react-router-dom";
-import "./register.css"; // 스타일 재사용
+import { useNavigate, Link } from "react-router-dom";
+import "./login.css"; // ✅ 최신 스타일이 적용된 CSS 파일 import
 
 function MyInfo() {
   const [me, setMe] = useState(null);
@@ -12,7 +11,7 @@ function MyInfo() {
   const fetchMe = async () => {
     try {
       setLoading(true);
-      const data = await getMe(); // null 또는 { user_id, user_nickname, email ... }
+      const data = await getMe(); 
       setMe(data);
     } catch (err) {
       console.error(err);
@@ -27,95 +26,113 @@ function MyInfo() {
   }, []);
 
   const handleLogout = async () => {
+    if (!window.confirm("정말 로그아웃 하시겠습니까?")) return;
     try {
-      const res = await logout();
-      alert(res.message || "로그아웃 되었습니다.");
+      await logout();
       setMe(null);
+      navigate("/login");
     } catch (err) {
       console.error(err);
-      alert(err.message || "로그아웃 중 오류가 발생했습니다.");
+      alert("로그아웃 중 오류가 발생했습니다.");
     }
   };
 
+  // ---------------------------------------------------------
+  // 렌더링 헬퍼: 로딩 중 & 비로그인 상태도 디자인 통일
+  // ---------------------------------------------------------
   if (loading) {
     return (
-      <div className="auth-wrapper">
-        <div className="auth-card">
-          <p>불러오는 중...</p>
-        </div>
+      <div className="auth-container">
+         <div className="auth-card" style={{textAlign:'center', padding:'50px'}}>
+            <p style={{color:'#64748b'}}>정보를 불러오는 중입니다... ⏳</p>
+         </div>
       </div>
     );
   }
 
   if (!me) {
     return (
-      <div className="auth-wrapper">
+      <div className="auth-container">
+        <div className="bg-circle circle-1"></div>
+        <div className="bg-circle circle-2"></div>
+        
         <div className="auth-card">
-          {/* 🔙 뒤로 가기 버튼 */}
-          <button
-            type="button"
-            className="back-btn"
-            onClick={() => navigate("/")}
-          >
-            ← 메인으로
-          </button>
-
-          <h1 className="auth-title">내 정보</h1>
-          <p className="auth-subtitle">로그인이 필요합니다.</p>
-
-          <button
-            className="submit-btn"
-            type="button"
-            onClick={() => navigate("/login")}
-          >
-            로그인 하러 가기
-          </button>
+          <div className="auth-header">
+            <h1 className="page-title">로그인 필요</h1>
+            <p className="page-subtitle">내 정보를 확인하려면 로그인이 필요합니다.</p>
+          </div>
+          <div className="auth-body">
+             <button className="submit-btn" onClick={() => navigate("/login")}>
+                로그인 하러 가기
+             </button>
+             <div className="home-link">
+                <Link to="/">← 메인으로 돌아가기</Link>
+             </div>
+          </div>
         </div>
       </div>
     );
   }
 
+  // ---------------------------------------------------------
+  // 메인 렌더링 (로그인 된 상태)
+  // ---------------------------------------------------------
   return (
-    <div className="auth-wrapper">
+    <div className="auth-container">
+      {/* 배경 장식 */}
+      <div className="bg-circle circle-1"></div>
+      <div className="bg-circle circle-2"></div>
+
       <div className="auth-card">
-        {/* 🔙 뒤로 가기 버튼 */}
-        <button
-          type="button"
-          className="back-btn"
-          onClick={() => navigate("/")}
-        >
-          ← 메인으로
-        </button>
-
-        <h1 className="auth-title">내 정보</h1>
-
-        <div className="form-group">
-          <label className="form-label">아이디</label>
-          <div className="input-wrapper">
-            <span className="input-icon">🔖</span>
-            <input className="auth-input" value={me.user_id} disabled />
-          </div>
+        {/* 헤더 */}
+        <div className="auth-header">
+          <Link to="/" className="brand-logo">
+            공맛집 <span>Official</span>
+          </Link>
+          <h1 className="page-title">내 정보</h1>
+          <p className="page-subtitle">
+            반갑습니다, <strong>{me.user_name}</strong>님! 👋
+          </p>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">닉네임</label>
-          <div className="input-wrapper">
-            <span className="input-icon">🏷</span>
-            <input className="auth-input" value={me.user_nickname} disabled />
+        {/* 본문 */}
+        <div className="auth-body">
+          
+          <div className="input-group">
+            <label>아이디</label>
+            <div className="input-wrapper">
+              <span className="input-icon">🔖</span>
+              <input className="auth-input with-icon" value={me.user_id} readOnly disabled />
+            </div>
           </div>
-        </div>
 
-        <div className="form-group">
-          <label className="form-label">이메일</label>
-          <div className="input-wrapper">
-            <span className="input-icon">✉</span>
-            <input className="auth-input" value={me.email} disabled />
+          <div className="input-group">
+            <label>닉네임</label>
+            <div className="input-wrapper">
+              <span className="input-icon">🏷</span>
+              <input className="auth-input with-icon" value={me.user_nickname} readOnly disabled />
+            </div>
           </div>
-        </div>
 
-        <button className="submit-btn" type="button" onClick={handleLogout}>
-          로그아웃
-        </button>
+          <div className="input-group">
+            <label>이메일</label>
+            <div className="input-wrapper">
+              <span className="input-icon">✉</span>
+              <input className="auth-input with-icon" value={me.email} readOnly disabled />
+            </div>
+          </div>
+
+          <div style={{ marginTop: '30px' }}>
+            <button className="submit-btn logout-btn" onClick={handleLogout}>
+              로그아웃
+            </button>
+          </div>
+
+          <div className="home-link">
+             <Link to="/">← 메인으로 돌아가기</Link>
+          </div>
+
+        </div>
       </div>
     </div>
   );
