@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import "./review.css";
 
 const API_BASE = "http://localhost:5001";
@@ -7,6 +7,11 @@ const API_BASE = "http://localhost:5001";
 function Review() {
     const { id } = useParams(); // URL의 식당 ID (예: 1)
     const navigate = useNavigate();
+    const location = useLocation(); // ✨ 위치 정보(state) 받기 위해 선언
+
+    // ✨ map.js에서 넘겨준 지도 상태 받기
+    const previousMapState = location.state?.mapState;
+    const restoredId = location.state?.restoredId;
 
     // --- State ---
     const [restaurant, setRestaurant] = useState(null);
@@ -70,7 +75,15 @@ function Review() {
 
             if (response.ok) {
                 alert("리뷰가 등록되었습니다!");
-                navigate(-1); // 지도 페이지로 돌아가기
+                // ✨ [수정] 뒤로가기 대신 map.js로 이동하며 상태(바통) 돌려주기
+                navigate('/map', { 
+                    state: { 
+                        source: 'return',  // 복구 모드임을 알림
+                        mapState: previousMapState, // 지도 위치 복구용
+                        restoredId: restoredId // 상세창 복구용 식당 ID
+                    },
+                    replace: true
+                });
             } else {
                 alert("리뷰 등록에 실패했습니다.");
             }
@@ -88,17 +101,23 @@ function Review() {
         <div className="review-container">
             {/* 1. 상단: 식당 정보 */}
             <div className="review-header">
-                <button onClick={() => navigate(-1)} className="back-btn">← 뒤로</button>
+                <button onClick={() => navigate('/map', { 
+                        state: { source: 'return', mapState: previousMapState, restoredId: restoredId } 
+                    })} 
+                    className="back-btn"
+                >← 뒤로</button>
                 {restaurant && (
                     <div className="restaurant-summary">
                         {/* DB 컬럼명에 따라 name 또는 res_name 확인 필요 */}
-                        <h2>{restaurant.name || restaurant.res_name}</h2>
+                        <h2>{restaurant.res_name || restaurant.name}</h2>
                         <p>{restaurant.address} · {restaurant.category}</p>
                     </div>
                 )}
             </div>
 
+
             {/* 2. 중단: 리뷰 작성 폼 */}
+            
             <div className="review-form-card">
                 <h3>리뷰 작성하기</h3>
                 
@@ -107,10 +126,7 @@ function Review() {
                         <span
                             key={star}
                             className={`star ${star <= rating ? "filled" : ""}`}
-                            onClick={() => setRating(star)}
-                        >
-                            ★
-                        </span>
+                            onClick={() => setRating(star)}>★</span>
                     ))}
                     <span className="rating-score">{rating}점</span>
                 </div>
@@ -121,12 +137,10 @@ function Review() {
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                 />
-                <button className="submit-review-btn" onClick={handleSubmit}>
-                    등록하기
-                </button>
+                <button className="submit-review-btn" onClick={handleSubmit}>등록하기</button>
             </div>
 
-            {/* 3. 하단: 리뷰 목록 */}
+            
             <div className="review-list-section">
                 <h3>전체 리뷰 ({reviews.length})</h3>
                 
@@ -139,12 +153,12 @@ function Review() {
                                 <div className="review-item-header">
                                     <span className="review-author">User {review.user_id}</span>
                                     <span className="review-score">
-                                        {/* ✨ DB 컬럼 rating 사용 */}
+                                        
                                         {"★".repeat(review.rating)} 
                                         <span style={{color:'#ccc'}}>{"★".repeat(5 - review.rating)}</span>
                                     </span>
                                 </div>
-                                {/* ✨ DB 컬럼 content 사용 */}
+                                
                                 <p className="review-content">{review.content}</p>
                                 <p style={{fontSize:'0.8rem', color:'#999', marginTop:'5px'}}>
                                     {new Date(review.created_at).toLocaleDateString()}
@@ -154,6 +168,7 @@ function Review() {
                     </div>
                 )}
             </div>
+
         </div>
     );
 }
