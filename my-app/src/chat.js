@@ -1,34 +1,32 @@
-// ✅ 브라우저 새로고침할 때마다 새로운 세션 ID 생성
+// 세션 ID 유지
 let sessionId = localStorage.getItem("chatSessionId");
 
 if (!sessionId) {
-  sessionId = crypto.randomUUID(); // 고유 세션 ID 생성
+  sessionId = crypto.randomUUID();
   localStorage.setItem("chatSessionId", sessionId);
 }
 
-export async function askChat(message) {
-  try {
-    const response = await fetch("http://localhost:5000/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: message,
-        session_id: sessionId, // ✅ 고유 세션 ID 사용
-      }),
-    });
+// 챗봇 서버 URL
+const CHATBOT_URL = "http://localhost:8000";
 
-    if (!response.ok) 
-      throw new Error(`서버 오류: ${response.status}`);
+// 챗봇 서버로 요청하는 함수
+export async function askChat(payload) {
+  console.log("📤 askChat() 호출됨 → payload =", payload);
 
-    const data = await response.json();
-    return {
-      answer: data.response || data.reply || "응답 없음",
-      items: data.items || [],
-    };
-  } catch (error) {
-    console.error("askChat 오류:", error);
-    throw error;
-  }
+  const response = await fetch(`${CHATBOT_URL}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      session_id: sessionId,
+      location: payload.location,
+      category: payload.category
+    }),
+  });
+
+  const data = await response.json();
+  console.log("📩 서버 응답:", data);
+
+  return {
+    items: data.items || []
+  };
 }
