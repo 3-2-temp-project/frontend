@@ -1,3 +1,4 @@
+// src/map.js
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import "./map.css";
@@ -8,7 +9,7 @@ const API_BASE = "http://localhost:5000";
 async function apiGet(path) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "GET",
-    credentials: "include",
+    credentials: "include", // 세션 쿠키 사용
   });
   if (!res.ok) throw new Error(`API GET Error: ${res.status}`);
   return res.json();
@@ -18,7 +19,7 @@ async function apiPost(path, body) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include",
+    credentials: "include", // 세션 쿠키 사용
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`API POST Error: ${res.status}`);
@@ -102,21 +103,22 @@ function Map() {
   const [mapInstance, setMapInstance] = useState(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
 
-  // --- Logic ---
-
+  // --- 주변 맛집 API 호출 ---
   const fetchNearbyRestaurants = async () => {
     setIsListLoading(true);
     try {
       const listData = await apiGet(`/restaurants/nearby?radius=${radius}`);
+      // Flask는 리스트 그대로 반환하므로 바로 세팅
       setNearbyList(listData);
     } catch (error) {
-      console.error(error);
+      console.error("nearby error:", error);
+      setNearbyList([]);
     } finally {
       setIsListLoading(false);
     }
   };
 
-  // 지도 초기화 함수
+  // --- 지도 초기화 ---
   const initMap = (markerData, targetCoords) => {
     const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
     const options = {
@@ -128,7 +130,7 @@ function Map() {
 
     const map = new window.kakao.maps.Map(mapContainer.current, options);
 
-    // 줌 컨트롤(+/-) 추가
+    // 줌 컨트롤
     const zoomControl = new window.kakao.maps.ZoomControl();
     map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
     map.setZoomable(true);
@@ -137,10 +139,14 @@ function Map() {
 
     // 마커 생성
     markerData.forEach((resto) => {
+      // lat/lng가 0인 데이터는 스킵 (DB에 0,0 있는 것들 제외)
+      if (!resto.lat || !resto.lng) return;
+
       const markerPosition = new window.kakao.maps.LatLng(resto.lat, resto.lng);
       const marker = new window.kakao.maps.Marker({ position: markerPosition });
       marker.setMap(map);
 
+      // 마커 클릭 시 상세 조회
       window.kakao.maps.event.addListener(marker, "click", async () => {
         map.panTo(markerPosition);
         setIsLoading(true);
@@ -148,7 +154,9 @@ function Map() {
           const detailData = await apiGet(
             `/restaurant/detail?lat=${resto.lat}&lng=${resto.lng}`
           );
-          setSelectedRestaurant(detailData);
+          // 백엔드가 {message, data} 형식일 수도 있어서 방어적으로 처리
+          const detail = detailData.data || detailData;
+          setSelectedRestaurant(detail);
         } catch (error) {
           console.error(error);
           alert("정보를 불러오지 못했습니다.");
@@ -161,21 +169,29 @@ function Map() {
     // 지도 드래그 후 중심 이동 시 위치 저장 + 주변 맛집 갱신
     window.kakao.maps.event.addListener(map, "dragend", async () => {
       const newCenter = map.getCenter();
-      await apiPost("/location", { lat: newCenter.getLat(), lng: newCenter.getLng() });
-      setSelectedProvince("all");
-      setSelectedDistrict("all");
-      fetchNearbyRestaurants();
+      try {
+        await apiPost("/location", {
+          lat: newCenter.getLat(),
+          lng: newCenter.getLng(),
+        });
+        setSelectedProvince("all");
+        setSelectedDistrict("all");
+        await fetchNearbyRestaurants();
+      } catch (e) {
+        console.error("dragend /location error:", e);
+      }
     });
   };
 
   // 1. 초기화 (마운트 시 1번만 실행)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let targetCoords;
 
+    // 1) 지오로케이션에서 온 경우: URL 쿼리 lat/lng 사용
     if (source === "geolocation" && urlLat && urlLng) {
       targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
     } else {
+      // 2) 그 외: 선택된 시/구 기준 좌표
       const currentKey = `${selectedProvince} ${selectedDistrict}`;
       targetCoords =
         LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
@@ -184,8 +200,20 @@ function Map() {
     const fetchMarkersAndInitMap = async () => {
       setIsLoading(true);
       try {
+        // ✅ 1) 현재 중심좌표를 세션(/location)에 저장 (새로고침해도 안전)
+        try {
+          await apiPost("/location", {
+            lat: targetCoords.lat,
+            lng: targetCoords.lng,
+          });
+        } catch (e) {
+          console.error("/location 초기 저장 실패:", e);
+        }
+
+        // ✅ 2) 마커 데이터 가져오기
         const markerData = await apiGet("/restaurants/markers");
 
+        // ✅ 3) Kakao 스크립트 로드 & 지도 초기화
         const loadKakao = () => {
           window.kakao.maps.load(() => initMap(markerData, targetCoords));
         };
@@ -203,11 +231,12 @@ function Map() {
           };
         }
 
+        // ✅ 4) 챗봇이 아닌 경우 주변 맛집 리스트도 불러오기
         if (source !== "chatbot") {
           await fetchNearbyRestaurants();
         }
       } catch (error) {
-        console.error(error);
+        console.error("init error:", error);
         if (window.kakao && window.kakao.maps) {
           window.kakao.maps.load(() => initMap([], targetCoords));
         }
@@ -217,14 +246,15 @@ function Map() {
     };
 
     fetchMarkersAndInitMap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 2. 반경 변경 시 주변 맛집 갱신
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (mapInstance && source !== "chatbot") {
       fetchNearbyRestaurants();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [radius, mapInstance, source]);
 
   // 3. 챗봇에서 넘어온 추천 식당 리스트 연동
@@ -235,7 +265,6 @@ function Map() {
   }, [source, chatbotRestaurants]);
 
   // 4. 지역 선택 시 지도 중심 이동
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!mapInstance) return;
 
@@ -251,6 +280,7 @@ function Map() {
     const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
     mapInstance.setCenter(center);
     setSelectedRestaurant(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProvince, selectedDistrict]);
 
   // --- 핸들러 ---
@@ -262,7 +292,12 @@ function Map() {
       const { latitude: lat, longitude: lng } = position.coords;
       const newPos = new window.kakao.maps.LatLng(lat, lng);
 
-      await apiPost("/location", { lat, lng });
+      try {
+        await apiPost("/location", { lat, lng });
+      } catch (e) {
+        console.error("현위치 /location error:", e);
+      }
+
       mapInstance.panTo(newPos);
       setSelectedProvince("all");
       setSelectedDistrict("all");
@@ -297,7 +332,8 @@ function Map() {
       const detailData = await apiGet(
         `/restaurant/detail?lat=${restaurant.lat}&lng=${restaurant.lng}`
       );
-      setSelectedRestaurant(detailData);
+      const detail = detailData.data || detailData;
+      setSelectedRestaurant(detail);
     } catch (error) {
       console.error(error);
     }
@@ -348,17 +384,11 @@ function Map() {
           </div>
         </div>
 
-        <div
-          id="kakao-map"
-          ref={mapContainer}
-          className="kakao-map-view"
-        />
+        <div id="kakao-map" ref={mapContainer} className="kakao-map-view" />
 
         {/* 지도 로딩 오버레이 */}
         {isLoading && (
-          <div className="map-loading-overlay">
-            지도 불러오는 중... 🗺️
-          </div>
+          <div className="map-loading-overlay">지도 불러오는 중... 🗺️</div>
         )}
 
         {/* 하단 상세 패널 */}
@@ -374,53 +404,42 @@ function Map() {
             <div className="sheet-content">
               <div className="sheet-header">
                 <div className="sheet-title">
-                  <h3>{selectedRestaurant.name}</h3>
+                  <h3>
+                    {selectedRestaurant.res_name ||
+                      selectedRestaurant.name ||
+                      "알 수 없는 식당"}
+                  </h3>
                   <span className="badge-category">
                     {selectedRestaurant.category || "맛집"}
                   </span>
                 </div>
                 <div className="sheet-meta">
                   <span>⭐ {selectedRestaurant.score ?? "0.0"}</span>
-                  <span>📞 {selectedRestaurant.phone || "정보없음"}</span>
+                  <span>
+                    📞{" "}
+                    {selectedRestaurant.res_phone ||
+                      selectedRestaurant.phone ||
+                      "정보없음"}
+                  </span>
                 </div>
                 <p className="sheet-address">{selectedRestaurant.address}</p>
               </div>
 
               <div className="sheet-reviews">
                 <h4>
-                  리뷰{" "}
-                  <span>{selectedRestaurant.review_count || 0}</span>
+                  리뷰 <span>{selectedRestaurant.review_count || 0}</span>
                 </h4>
-                {!selectedRestaurant.reviews ||
-                selectedRestaurant.reviews.length === 0 ? (
-                  <div className="empty-review">
-                    <p>아직 작성된 리뷰가 없습니다.</p>
-                    <button
-                      onClick={() =>
-                        navigate(`/reviews/${selectedRestaurant.res_id}`)
-                      }
-                    >
-                      첫 리뷰 작성하기 ✍️
-                    </button>
-                  </div>
-                ) : (
-                  <div className="review-list">
-                    {selectedRestaurant.reviews.map((review) => (
-                      <div key={review.id} className="review-item">
-                        <div className="review-author">{review.author}</div>
-                        <div className="review-text">{review.content}</div>
-                      </div>
-                    ))}
-                    <button
-                      className="more-review-btn"
-                      onClick={() =>
-                        navigate(`/reviews/${selectedRestaurant.res_id}`)
-                      }
-                    >
-                      리뷰 더보기 +
-                    </button>
-                  </div>
-                )}
+                {/* 리뷰는 나중에 백엔드 연동 시 확장 */}
+                <div className="empty-review">
+                  <p>리뷰 페이지에서 자세히 볼 수 있습니다.</p>
+                  <button
+                    onClick={() =>
+                      navigate(`/reviews/${selectedRestaurant.res_id}`)
+                    }
+                  >
+                    리뷰 보러가기 ✍️
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -468,8 +487,8 @@ function Map() {
               >
                 <div className="card-icon">🍽️</div>
                 <div className="card-info">
-                  <h4>{restaurant.name}</h4>
-                  <p>{restaurant.category}</p>
+                  <h4>{restaurant.res_name || restaurant.name}</h4>
+                  <p>{restaurant.category || "카테고리 없음"}</p>
                 </div>
                 <div className="card-arrow">→</div>
               </div>
