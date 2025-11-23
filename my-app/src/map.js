@@ -450,6 +450,7 @@ function Map() {
                 </div>
                 <div className="sheet-meta">
                   <span>⭐ {selectedRestaurant.score ?? "0.0"}</span>
+                  <span className="meta-separator">•</span>
                   <span>📞 {selectedRestaurant.res_phone || "정보없음"}</span>
                 </div>
                 <p className="sheet-address">{selectedRestaurant.address}</p>

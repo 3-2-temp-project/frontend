@@ -65,21 +65,41 @@
 .location-btn:hover { background: #dbeafe; }
 
 
-/* 하단 상세 정보 시트 */
+
+/* 지도 하단 상세 시트 */
 .detail-sheet {
-  position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-  width: 90%; max-width: 600px; height: 300px; background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-  z-index: 20; display: flex; flex-direction: column; border: 1px solid #f1f5f9; overflow: hidden;
-  animation: slideUpSheet 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  /* 🔥 여기 폭/최대폭 키우기 */
+  width: 100%;
+  max-width: 1080px;   /* 예전보다 넓게 (기존에 380~420 정도였을 거임) */
+
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+  z-index: 20;
+  overflow: hidden;
 }
+
 .sheet-close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer; }
 .sheet-content { display: flex; height: 100%; }
 .sheet-header { flex: 1; padding: 30px; border-right: 1px solid #f1f5f9; display: flex; flex-direction: column; justify-content: center; }
 .sheet-title { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .sheet-title h3 { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin: 0; }
 .badge-category { background: #dbeafe; color: #2563eb; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
-.sheet-meta { margin-bottom: 15px; color: #64748b; font-size: 0.95rem; }
+.sheet-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-separator {
+  margin: 0 4px;
+  font-size: 14px;
+  color: #d1d5db; /* 연한 회색 점 느낌 */
+}
 .sheet-address { color: #475569; font-size: 0.9rem; }
 .sheet-reviews { flex: 1; padding: 30px; background: #fafbfc; display: flex; flex-direction: column; overflow: hidden; }
 .sheet-reviews h4 { margin: 0 0 15px 0; font-size: 1rem; color: #334155; }
