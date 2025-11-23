@@ -3,6 +3,8 @@ import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import "./map.css";
 
 const API_BASE = "http://localhost:5001"; 
+const API_BASE_URL = "http://localhost:5001";
+
 async function apiGet(path) {
     const res = await fetch(`${API_BASE}${path}`, {
         method: "GET",
