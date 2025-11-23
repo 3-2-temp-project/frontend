@@ -101,7 +101,7 @@ function MyInfo() {
           <div className="input-group">
             <label>아이디</label>
             <div className="input-wrapper">
-              <span className="input-icon">🔖</span>
+              <span className="input-icon"></span>
               <input className="auth-input with-icon" value={me.user_id} readOnly disabled />
             </div>
           </div>
@@ -109,7 +109,7 @@ function MyInfo() {
           <div className="input-group">
             <label>닉네임</label>
             <div className="input-wrapper">
-              <span className="input-icon">🏷</span>
+              <span className="input-icon"></span>
               <input className="auth-input with-icon" value={me.user_nickname} readOnly disabled />
             </div>
           </div>
@@ -117,7 +117,7 @@ function MyInfo() {
           <div className="input-group">
             <label>이메일</label>
             <div className="input-wrapper">
-              <span className="input-icon">✉</span>
+              <span className="input-icon"></span>
               <input className="auth-input with-icon" value={me.email} readOnly disabled />
             </div>
           </div>

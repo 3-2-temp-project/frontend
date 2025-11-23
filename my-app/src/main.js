@@ -289,7 +289,7 @@ function Main() {
                 }`}
                 onClick={() => setSearchTab("current")}
               >
-                📍 내 주변
+                내 주변
               </button>
               <button
                 className={`tab-btn ${
@@ -297,7 +297,7 @@ function Main() {
                 }`}
                 onClick={() => setSearchTab("address")}
               >
-                🔍 주소 검색
+                주소 검색
               </button>
             </div>
 

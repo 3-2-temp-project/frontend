@@ -84,7 +84,7 @@ function Login() {
           <div className="input-group">
             <label>아이디</label>
             <div className="input-wrapper">
-              <span className="input-icon">👤</span>
+              <span className="input-icon"></span>
               <input
                 className="auth-input with-icon"
                 placeholder="아이디를 입력하세요 (영문/숫자)"
@@ -98,7 +98,7 @@ function Login() {
           <div className="input-group">
             <label>비밀번호</label>
             <div className="input-wrapper">
-              <span className="input-icon">🔒</span>
+              <span className="input-icon"></span>
               <input
                 type="password"
                 className="auth-input with-icon"
