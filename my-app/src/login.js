@@ -7,10 +7,27 @@ import "./login.css";
 function Login() {
   const navigate = useNavigate();
 
+  // 🔐 아이디: 영문 + 숫자만 허용
+  const USER_ID_REGEX = /^[a-zA-Z0-9]+$/;
+
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const handleUserIdChange = (e) => {
+    const value = e.target.value;
+
+    if (value === "" || USER_ID_REGEX.test(value)) {
+      setUserId(value);
+      // 형식 에러였다면 입력 정상화 시 에러 제거
+      if (errorMsg === "아이디는 영문과 숫자만 사용할 수 있습니다.") {
+        setErrorMsg("");
+      }
+    } else {
+      setErrorMsg("아이디는 영문과 숫자만 사용할 수 있습니다.");
+    }
+  };
 
   const handleLogin = async () => {
     if (!userId || !password) {
@@ -18,13 +35,18 @@ function Login() {
       return;
     }
 
+    // 🔹 로그인 시에도 아이디 형식 한 번 더 체크
+    if (!USER_ID_REGEX.test(userId)) {
+      setErrorMsg("아이디는 영문과 숫자만 사용할 수 있습니다.");
+      return;
+    }
+
     try {
       setLoading(true);
       setErrorMsg("");
       const res = await login(userId, password);
-      
-      // 성공 시 알림 없이 바로 이동하거나, 필요하면 alert 사용
-      // alert(res.message || "로그인 성공!"); 
+
+      // 로그인 성공 시
       navigate("/me");
     } catch (err) {
       console.error(err);
@@ -36,7 +58,7 @@ function Login() {
 
   // 엔터키 입력 시 로그인 처리
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleLogin();
     }
   };
@@ -48,7 +70,6 @@ function Login() {
       <div className="bg-circle circle-2"></div>
 
       <div className="auth-card login-card-size">
-        
         {/* 헤더 영역 */}
         <div className="auth-header">
           <Link to="/" className="brand-logo">
@@ -60,16 +81,15 @@ function Login() {
 
         {/* 입력 폼 영역 */}
         <div className="auth-body">
-          
           <div className="input-group">
             <label>아이디</label>
             <div className="input-wrapper">
               <span className="input-icon">👤</span>
               <input
                 className="auth-input with-icon"
-                placeholder="아이디를 입력하세요"
+                placeholder="아이디를 입력하세요 (영문/숫자)"
                 value={userId}
-                onChange={(e) => setUserId(e.target.value)}
+                onChange={handleUserIdChange}
                 onKeyDown={handleKeyDown}
               />
             </div>
@@ -105,11 +125,10 @@ function Login() {
           <div className="bottom-links">
             계정이 없으신가요? <Link to="/register">회원가입</Link>
           </div>
-          
-          <div className="home-link">
-             <Link to="/">← 메인으로 돌아가기</Link>
-          </div>
 
+          <div className="home-link">
+            <Link to="/">← 메인으로 돌아가기</Link>
+          </div>
         </div>
       </div>
     </div>

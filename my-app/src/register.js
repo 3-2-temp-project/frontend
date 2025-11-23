@@ -6,6 +6,12 @@ import { sendCode, verifyCode, signup } from "./authApi";
 function Register() {
   const navigate = useNavigate();
 
+  // 🔐 유효성 검사 정규식
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;              // 이메일 형식
+  const USER_ID_REGEX = /^[a-zA-Z0-9]+$/;                        // 아이디: 영문 + 숫자
+  const PASSWORD_REGEX =
+    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;           // 8자 이상, 영문/숫자/특수문자
+
   // ------------------------------------
   // 상태 관리
   // ------------------------------------
@@ -23,32 +29,59 @@ function Register() {
   const [statusMsg, setStatusMsg] = useState({ type: "", text: "" });
 
   // ------------------------------------
-  // 핸들러
+  // 헬퍼
   // ------------------------------------
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
   const showMessage = (type, text) => {
     setStatusMsg({ type, text });
     setTimeout(() => setStatusMsg({ type: "", text: "" }), 3000);
   };
 
+  // ------------------------------------
+  // 핸들러
+  // ------------------------------------
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+
+    // 아이디: 영문/숫자만 허용
+    if (name === "user_id") {
+      if (value === "" || USER_ID_REGEX.test(value)) {
+        setForm((prev) => ({ ...prev, [name]: value }));
+      } else {
+        showMessage("error", "아이디는 영문과 숫자만 사용할 수 있습니다.");
+      }
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
   // 이메일 인증번호 발송
   const handleSendCode = async () => {
+    console.log("[SendCode] 클릭됨, email =", form.email);
+
     if (!form.email) {
       showMessage("error", "이메일을 입력해주세요.");
       return;
     }
+
+    if (!EMAIL_REGEX.test(form.email)) {
+      showMessage("error", "올바른 이메일 형식을 입력해주세요.");
+      return;
+    }
+
     try {
       const res = await sendCode(form.email);
-      showMessage("success", res.message || "인증코드가 발송되었습니다.");
+      console.log("[SendCode] 성공", res);
+
+      const msg = res?.message || "인증코드가 발송되었습니다.";
+      showMessage("success", msg);
       setIsCodeSent(true);
-      setIsVerified(false);
+      setIsVerified(false); // 새 코드 보내면 다시 미인증 상태
     } catch (err) {
-      console.error(err);
-      showMessage("error", err.message || "전송 중 오류가 발생했습니다.");
+      console.error("[SendCode] 에러", err);
+      const msg = err?.message || "전송 중 오류가 발생했습니다.";
+      showMessage("error", msg);
+      setIsCodeSent(false);
     }
   };
 
@@ -58,13 +91,20 @@ function Register() {
       showMessage("error", "인증번호를 입력해주세요.");
       return;
     }
+
     try {
       const res = await verifyCode(form.email, code);
-      showMessage("success", "인증이 완료되었습니다.");
-      setIsVerified(!!res.ok);
+      console.log("[VerifyCode] 응답:", res);
+
+      const msg = res?.message || "인증이 완료되었습니다.";
+      showMessage("success", msg);
+
+      // ✅ 성공하면 확실하게 인증 완료 처리
+      setIsVerified(true);
     } catch (err) {
-      console.error(err);
-      showMessage("error", err.message || "인증번호가 올바르지 않습니다.");
+      console.error("[VerifyCode] 에러", err);
+      const msg = err?.message || "인증번호가 올바르지 않습니다.";
+      showMessage("error", msg);
       setIsVerified(false);
     }
   };
@@ -75,13 +115,27 @@ function Register() {
       showMessage("error", "이메일 인증을 완료해주세요.");
       return;
     }
+
     if (!form.user_id || !form.user_name || !form.user_nickname || !form.password) {
       showMessage("error", "모든 필드를 입력해주세요.");
       return;
     }
 
+    if (!USER_ID_REGEX.test(form.user_id)) {
+      showMessage("error", "아이디는 영문과 숫자만 사용할 수 있습니다.");
+      return;
+    }
+
+    if (!PASSWORD_REGEX.test(form.password)) {
+      showMessage(
+        "error",
+        "비밀번호는 8자 이상이며 영문, 숫자, 특수문자를 모두 포함해야 합니다."
+      );
+      return;
+    }
+
     try {
-      const res = await signup(form);
+      await signup(form);
       alert("회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.");
       navigate("/login");
     } catch (err) {
@@ -114,7 +168,7 @@ function Register() {
           {/* 섹션 1: 기본 정보 */}
           <div className="input-section">
             <h3 className="section-label">기본 정보</h3>
-            
+
             <div className="input-group">
               <label>이름</label>
               <input
@@ -125,18 +179,16 @@ function Register() {
               />
             </div>
 
-            {/* 아이디 */}
             <div className="input-group">
               <label>아이디</label>
               <input
                 name="user_id"
-                placeholder="User ID"
+                placeholder="영문/숫자 조합 (예: gomatjib01)"
                 value={form.user_id}
                 onChange={handleInputChange}
               />
             </div>
 
-            {/* 닉네임 */}
             <div className="input-group">
               <label>닉네임</label>
               <input
@@ -164,7 +216,7 @@ function Register() {
           {/* 섹션 2: 인증 */}
           <div className="input-section">
             <h3 className="section-label">본인 인증</h3>
-            
+
             <div className="input-group">
               <label>이메일 주소</label>
               <div className="input-with-btn">
@@ -176,9 +228,9 @@ function Register() {
                   onChange={handleInputChange}
                   disabled={isVerified}
                 />
-                <button 
-                  type="button" 
-                  className={`sub-btn ${isVerified ? 'disabled' : ''}`}
+                <button
+                  type="button"
+                  className={`sub-btn ${isVerified ? "disabled" : ""}`}
                   onClick={handleSendCode}
                   disabled={isVerified}
                 >
@@ -196,7 +248,11 @@ function Register() {
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                   />
-                  <button type="button" className="sub-btn dark" onClick={handleVerifyCode}>
+                  <button
+                    type="button"
+                    className="sub-btn dark"
+                    onClick={handleVerifyCode}
+                  >
                     확인
                   </button>
                 </div>
@@ -225,12 +281,11 @@ function Register() {
               이미 계정이 있으신가요? <Link to="/login">로그인</Link>
             </div>
           </div>
-          
-          {/* 🔙 메인으로 돌아가기 링크 추가 */}
-          <div className="home-link">
-             <Link to="/">← 메인으로 돌아가기</Link>
-          </div>
 
+          {/* 🔙 메인으로 돌아가기 링크 */}
+          <div className="home-link">
+            <Link to="/">← 메인으로 돌아가기</Link>
+          </div>
         </div>
       </div>
     </div>
