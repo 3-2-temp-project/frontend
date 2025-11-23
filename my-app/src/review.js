@@ -31,7 +31,7 @@ function Review() {
 
                 // 2. ✨ 이 식당의 리뷰 목록 가져오기
                 // (server.js의 GET /reviews/:res_id API 호출)
-                const resReviews = await fetch(`${API_BASE}/reviews/restaurant${id}`);
+                const resReviews = await fetch(`${API_BASE}/reviews${id}`);
                 if (resReviews.ok) {
                     const reviewData = await resReviews.json();
                     setReviews(reviewData.items || []); // API 응답 형태에 따라 조정

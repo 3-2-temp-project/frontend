@@ -38,7 +38,6 @@ app.get('/restaurants/markers', (req, res) => {
             console.error(err);
             res.status(500).send(err);
         } else {
-            // ✨ MySQL과 다르게 실제 데이터는 result.rows에 들어있습니다.
             res.send(result.rows); 
         }
     });
@@ -51,10 +50,8 @@ app.get('/restaurant/detail', (req, res) => {
     //const lng = req.query.lng;
     const id = req.query.id;
     
-    // ✨ PostgreSQL은 물음표(?) 대신 $1, $2 문법을 씁니다.
-    // (여기서는 예시로 좌표로 찾지만, 실제로는 ID로 찾는게 좋습니다)
     //const sql = "SELECT * FROM restaurant_info WHERE lat = $1 AND lng = $2";
-    const sql = "SELECT * FROM restaurant_info WHERE id = $1";
+    const sql = "SELECT * FROM restaurant_info WHERE res_id = $1";
     /*
     pool.query(sql, [lat, lng], (err, result) => {
         if (err) {
@@ -71,10 +68,6 @@ app.get('/restaurant/detail', (req, res) => {
         } else if (result.rows.length === 0) {
             res.status(404).send("식당을 찾을 수 없습니다.");
         } else {
-            // 리뷰 데이터도 같이 보내주기로 했었죠? (선택사항: 조인하거나 별도 호출)
-            // 일단 식당 정보만 보냅니다. (리뷰는 map.js에서 따로 /reviews 호출해도 됨)
-            // 만약 여기서 리뷰도 같이 주려면 쿼리가 복잡해지니, 
-            // map.js에서 상세정보 API + 리뷰 목록 API 두 개를 부르는 게 낫습니다.
             res.send(result.rows[0]);
         }
     });
@@ -92,13 +85,8 @@ app.get('/restaurants/nearby', (req, res) => {
     const userLat = req.query.lat; 
     const userLng = req.query.lng;
 
-    // 위치 정보가 없으면 그냥 빈 배열 반환
     if (!userLat || !userLng) {return res.json([]);}
 
-    // 2. PostgreSQL의 하버사인 공식(Haversine Formula) 쿼리
-    // 6371 = 지구 반지름(km)
-    // 식당 테이블 이름: restaurant_info
-    // 식당 좌표 컬럼: lat, lng
     const sql = `
         SELECT *,
             (6371 * acos(cos(radians($1)) * cos(radians(lat)) * cos(radians(lng) - radians($2)) + sin(radians($1)) * sin(radians(lat)))) AS distance
@@ -156,7 +144,7 @@ app.post('/reviews', (req, res) => {
     });
 });
 
-// ✨ 위치 정보 저장 API (POST /location)
+// 위치 정보 저장 API (POST /location)
 app.post('/location', (req, res) => {
     const { lat, lng } = req.body;
     console.log("📍 사용자 위치 수신:", lat, lng);

@@ -22,8 +22,6 @@ async function apiPost(path, body) {
     return res.json();
 }
 
-const API_BASE_URL = 'http://localhost:5001';
-
 function Map() {
 
     const mapContainer = useRef(null); 
@@ -109,13 +107,14 @@ function Map() {
 
     // API 데이터 state
     const [isLoading, setIsLoading] = useState(false);
-    const [markers, setMarkers] = useState([]); // 카카오 마커 *객체* 배열
-    const [nearbyList, setNearbyList] = useState([]); // GET /nearby (리스트용)
-    const [radius, setRadius] = useState(0.5); // 반경
+    const [allMarkersData, setAllMarkersData] = useState([]); //모든 식당 데이터 원본
+    const [nearbyList, setNearbyList] = useState([]); //현재 화면에 보이는 식당 리스트
+    const [radius, setRadius] = useState(0.5);
 
     // 카카오맵 객체 state
     const [mapInstance, setMapInstance] = useState(null);
     const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+    const [markers, setMarkers] = useState([]); // 카카오 마커 *객체* 배열
 
     const fetchNearbyRestaurants = async () => {
         setIsLoading(true);
@@ -144,6 +143,7 @@ function Map() {
         }
     };
 
+
     // 메인 useEffect: 지도 초기화 및 *모든 마커* 로딩
     useEffect(() => {
         console.log("현재 소스:", source); // 'address'가 떠야 함
@@ -170,11 +170,13 @@ function Map() {
             const currentKey = `${selectedProvince} ${selectedDistrict}`;
             targetCoords = LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
         }
-
+        
         const fetchMarkersAndInitMap = async () => {
             setIsLoading(true);
             try {
                 const markerData = await apiGet("/restaurants/markers");
+                //setAllMarkersData(markerData);
+
                 if (window.kakao && window.kakao.maps) {
                     window.kakao.maps.load(() => initMap(markerData, targetCoords));
                 } else {
@@ -187,8 +189,8 @@ function Map() {
                     };
                     
                 }
-
-                // 챗봇으로 진입한 게 아닐 때만 초기 리스트 로딩
+                
+                //챗봇으로 진입한 게 아닐 때만 초기 리스트 로딩
                 if (source !== 'chatbot') {
                     await fetchNearbyRestaurants();
                 }
@@ -205,24 +207,28 @@ function Map() {
     }, []); // 최초 1회만 실행
 
     // '반경(radius)'이 바뀔 때마다 주변 식당 리스트 갱신
+    /*
     useEffect(() => {
         // 맵 로딩이 완료되었고, 챗봇 모드가 아닐 때만 API 호출
         if (mapInstance && source !== 'chatbot') {
             fetchNearbyRestaurants();
         }
     }, [radius, mapInstance, source]);
+    */
+   // 반경(radius)이 바뀌면 지도 줌 레벨(확대/축소) 변경
+    useEffect(() => {
+        fetchNearbyRestaurants();
+        if (!mapInstance) return;
+        let level = 4;
+        if (radius === 0.5) level = 5;
+        else if (radius === 1.0) level = 6;
+        else if (radius === 3.0) level = 8;
+        mapInstance.setLevel(level, { animate: true });
+        
+    }, [radius, mapInstance]);
+    
 
     // 3. 챗봇 진입 시
-    useEffect(() => {
-        if (source === 'chatbot' && chatbotRestaurants) {
-            console.log("챗봇 추천 데이터를 리스트에 표시합니다.");
-            setNearbyList(chatbotRestaurants);
-        }
-    }, [source, chatbotRestaurants]);
-
-   // 챗봇으로 진입 시 nearbyList state 업데이트
-   //이상하면 이 useEffect 지우기
-   
     useEffect(() => {
         if (source === 'chatbot' && chatbotRestaurants) {
             console.log("챗봇 추천 데이터를 리스트에 표시합니다.");
@@ -236,10 +242,8 @@ function Map() {
 
         let targetCoords;
         if (selectedProvince === "all" && urlLat && urlLng) {
-            // (님의 'geolocation' 모드)
             targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
         } else {
-            // (팀원/님의 '주소 지정' 모드)
             const currentKey = `${selectedProvince} ${selectedDistrict}`;
             targetCoords = LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
         }
@@ -247,50 +251,32 @@ function Map() {
         const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
         mapInstance.setCenter(center);
         
-        // (추가) 콤보박스 조작 시, 열려있던 하단 패널을 닫기
+        // 콤보박스 조작 시, 열려있던 하단 패널을 닫기
         setSelectedRestaurant(null); 
+
+        fetchNearbyRestaurants();
 
     }, [mapInstance, selectedProvince, selectedDistrict, urlLat, urlLng]);
 
-    // 반경(radius)이 바뀌면 지도 줌 레벨(확대/축소) 변경
-    useEffect(() => {
-        if (!mapInstance) return;
-
-        let level = 4; // 기본 (0.5km일 때 적당)
-        
-        if (radius === 0.5) {
-            level = 5; // 좁은 구역
-        } else if (radius === 1.0) {
-            level = 6; // 중간 구역
-        } else if (radius === 3.0) {
-            level = 8; // 넓은 구역
-        }
-
-        // 부드럽게 줌 레벨 변경
-        mapInstance.setLevel(level, { animate: true });
-        
-    }, [radius, mapInstance]);
     
 
-    // --- (4) 지도 초기화 및 이벤트 핸들러 ---
+    // --- 지도 초기화 및 이벤트 핸들러 ---
 
-    // (수정) initMap: 마커 생성 + 'dragend' + API 연동 클릭 이벤트
     const initMap = (markerData, targetCoords) => {
         const center = new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng);
         const options = { center, level: 4 };
         const map = new window.kakao.maps.Map(mapContainer.current, options);
-        const iw = new window.kakao.maps.InfoWindow({ removable: true, zIndex: 1 });
-
+        //const iw = new window.kakao.maps.InfoWindow({ removable: true, zIndex: 1 });
         setMapInstance(map);
 
         // (기존) 마커 생성 및 클릭 이벤트 (GET /restaurant/detail)
         const createdMarkers = markerData.map(resto => {
             const markerPosition = new window.kakao.maps.LatLng(resto.lat, resto.lng);
             const marker = new window.kakao.maps.Marker({ position: markerPosition });
-                marker.markerLat = resto.lat;
-                marker.markerLng = resto.lng;
+                marker.markerLat = resto.lat; //얘네 없어짐
+                marker.markerLng = resto.lng; //얘네 없어짐
                 //marker.category = resto.category; // 필요시 사용
-                marker.restaurantId = resto.res_name;
+                marker.restaurantId = resto.res_id;
                 marker.setMap(map);
 
                 // 마커 클릭 리스너가 /detail API를 호출하고 state를 변경
@@ -298,17 +284,25 @@ function Map() {
                 setIsLoading(true);
                 map.panTo(markerPosition);
 
+                console.log("👉 클릭한 식당 ID:", marker.restaurantId);
+
                 try {
-                    const detailData = await apiGet(`/restaurant/detail?lat=${marker.markerLat}&lng=${marker.markerLng}`);
-                    
+                    const detailData = await apiGet(`/restaurant/detail?id=${marker.restaurantId}`);
+                    /*
                     const reviewRes = await apiGet(`/reviews/restaurant${detailData.res_id}`);
                     if (reviewRes.ok) {
                         const rjson = await reviewRes.json();
                         detailData.reviews = rjson.items || [];
                         detailData.review_count = (rjson.items || []).length;
-                    }
+                    }*/
+                    //setSelectedRestaurant(detailData);
+                    const reviewData = await apiGet(`/reviews/${marker.restaurantId}`);
                     
-                    setSelectedRestaurant(detailData);
+                    setSelectedRestaurant({ 
+                        detailData, 
+                        reviews: reviewData, 
+                        review_count: reviewData.length 
+                    });
 
                     } catch (error) {
                         console.error("Error fetching restaurant detail:", error);
@@ -320,12 +314,19 @@ function Map() {
             return marker;
         });
         setMarkers(createdMarkers);
-        window.kakao.maps.event.addListener(map, 'dragend', handleMapDragEnd);
+
+        //window.kakao.maps.event.addListener(map, 'dragend', handleMapDragEnd);
+        // ✨ 드래그 종료 시 -> 위치 저장 + 리스트 갱신 (서버 요청)
+        window.kakao.maps.event.addListener(map, 'dragend', async () => {
+             const center = map.getCenter();
+             await apiPost("/location", { lat: center.getLat(), lng: center.getLng() });
+             await fetchNearbyRestaurants();
+        });
 
         setIsLoading(false);// 초기 로딩 완료
     };
 
-    //지도 드래그 종료 시
+    // 리스트 갱신 코드 (지도 이동 후) 
     const handleMapDragEnd = async () => {
         if (!mapInstance) return;
         const newCenter = mapInstance.getCenter();
@@ -406,10 +407,15 @@ function Map() {
         mapInstance.panTo(moveLatLng);
 
         try {
-            // 리스트 클릭 시에도 /detail API를 호출 (리뷰 데이터를 가져오기 위해)
-            const detailData = await apiGet(`/restaurant/detail?lat=${lat}&lng=${lng}`);
-            setSelectedRestaurant(detailData);
-
+            //const detailData = await apiGet(`/restaurant/detail?lat=${lat}&lng=${lng}`);
+            //setSelectedRestaurant(detailData);
+            const detailData = await apiGet(`/restaurant/detail?id=${restaurant.res_id}`);
+            const reviewData = await apiGet(`/reviews/${restaurant.res_id}`);
+            setSelectedRestaurant({ 
+                ...detailData, 
+                reviews: reviewData, 
+                review_count: reviewData.length 
+            });
         } catch (error) {
             console.error("Error fetching restaurant detail:", error);
             alert("상세 정보를 불러오는 데 실패했습니다.");
@@ -548,7 +554,7 @@ function Map() {
                     
                     {nearbyList.map(restaurant => (
                         <div
-                            key={restaurant.res_name}
+                            key={restaurant.res_id}
                             onClick={() => handleRestaurantClick(restaurant)}
                             className="list-item" 
                         >
