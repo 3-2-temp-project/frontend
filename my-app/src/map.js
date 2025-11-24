@@ -202,9 +202,9 @@ function Map() {
     const map = new window.kakao.maps.Map(mapContainer.current, options);
 
     // 줌 컨트롤
-    /*const zoomControl = new window.kakao.maps.ZoomControl();
+    const zoomControl = new window.kakao.maps.ZoomControl();
     map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
-    map.setZoomable(true);*/
+    map.setZoomable(true);
 
     setMapInstance(map);
 
