@@ -35,6 +35,7 @@ function Login() {
       return;
     }
 
+    // 🔹 로그인 시에도 아이디 형식 한 번 더 체크
     if (!USER_ID_REGEX.test(userId)) {
       setErrorMsg("아이디는 영문과 숫자만 사용할 수 있습니다.");
       return;
@@ -46,14 +47,6 @@ function Login() {
       const res = await login(userId, password);
 
       // 로그인 성공 시
-      const userData = res.data; // 로그인한 사용자 정보
-
-      if (userData) {
-        localStorage.setItem("user_num", String(userData.user_num));
-        localStorage.setItem("user_id", String(userData.user_id));
-        localStorage.setItem("nickname", String(userData.nickname || ""));
-      }
-
       navigate("/me");
     } catch (err) {
       console.error(err);

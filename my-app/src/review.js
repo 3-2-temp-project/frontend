@@ -89,11 +89,8 @@ function Review() {
     }
 
     const resId = Number(id);
-    const userNum = Number(localStorage.getItem("user_num"));
-
-    if (!userNum) {
-      alert("로그인이 필요합니다.");
-      navigate("/login");
+    if (!resId) {
+      alert("식당 정보가 올바르지 않습니다.");
       return;
     }
 
@@ -106,7 +103,7 @@ function Review() {
         credentials: "include",
         body: JSON.stringify({
           res_id: resId,
-          user_id: userNum,  // ⭐ 로그인한 사용자로 자동 처리
+          user_id: 1, // TODO: 로그인 연동 후 실제 user_id 로 교체
           rating,
           content,
         }),
@@ -118,6 +115,7 @@ function Review() {
       }
 
       alert("리뷰가 등록되었습니다!");
+      // 지금은 등록 후 이전 페이지(지도)로 이동
       navigate(-1);
     } catch (error) {
       console.error("리뷰 전송 오류:", error);
