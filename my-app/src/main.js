@@ -116,6 +116,9 @@ function Main() {
           id: Date.now() + 1,
           text: "죄송합니다. 서버 통신 중 오류가 발생했습니다.",
           sender: "bot",
+          type: "buttons",
+          text: "어떤 종류의 음식을 찾고 계신가요?",
+          options: ["한식", "중식", "일식", "양식", "카페", "분식"]
         },
       ]);
     } finally {
