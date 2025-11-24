@@ -52,51 +52,78 @@ function Map() {
   const PROVINCES = ["서울특별시", "경기도"];
   const DISTRICTS_BY_PROVINCE = {
     "서울특별시": [
-      "은평구",
-      "영등포구",
-      "용산구",
-      "동대문구",
-      "동작구",
-      "광진구",
-      "마포구",
-      "서초구",
-      "강동구",
-      "성북구",
-      "도봉구",
-      "노원구",
-      "강서구",
-      "양천구",
-      "구로구",
-      "금천구",
-      "송파구",
-      "강남구",
+      "강남구", "강동구", "강북구", "강서구", "관악구", "광진구", "구로구", "금천구",
+      "노원구", "도봉구", "동대문구", "동작구", "마포구", "서대문구", "서초구", "성동구",
+      "성북구", "송파구", "양천구", "영등포구", "용산구", "은평구", "종로구", "중구", "중랑구"
     ],
-    "경기도": ["화성시 와우리", "수원시 팔달구", "수원시 장안구", "수원시"],
+    "경기도": [
+      "수원시", "성남시", "고양시", "용인시", "부천시", "안산시", "안양시", "남양주시",
+      "화성시", "평택시", "의정부시", "시흥시", "파주시", "김포시", "광명시", "광주시",
+      "군포시", "하남시", "오산시", "양주시", "이천시", "구리시", "안성시", "포천시",
+      "의왕시", "양평군", "여주시", "동두천시", "과천시", "가평군", "연천군"
+    ]
   };
 
   const LOCATION_COORDS = {
-    "서울특별시 은평구": { lat: 37.6027, lng: 126.9292 },
-    "서울특별시 영등포구": { lat: 37.5263, lng: 126.8962 },
-    "서울특별시 용산구": { lat: 37.5311, lng: 126.9819 },
+    // 서울특별시 좌표
+    "서울특별시 강남구": { lat: 37.5173, lng: 127.0473 },
+    "서울특별시 강동구": { lat: 37.5301, lng: 127.1238 },
+    "서울특별시 강북구": { lat: 37.6398, lng: 127.0256 },
+    "서울특별시 강서구": { lat: 37.5509, lng: 126.8495 },
+    "서울특별시 관악구": { lat: 37.4784, lng: 126.9516 },
+    "서울특별시 광진구": { lat: 37.5384, lng: 127.0822 },
+    "서울특별시 구로구": { lat: 37.4954, lng: 126.8874 },
+    "서울특별시 금천구": { lat: 37.4568, lng: 126.8950 },
+    "서울특별시 노원구": { lat: 37.6543, lng: 127.0565 },
+    "서울특별시 도봉구": { lat: 37.6688, lng: 127.0471 },
     "서울특별시 동대문구": { lat: 37.5744, lng: 127.0396 },
     "서울특별시 동작구": { lat: 37.5124, lng: 126.9398 },
-    "서울특별시 광진구": { lat: 37.5384, lng: 127.0822 },
     "서울특별시 마포구": { lat: 37.5609, lng: 126.9084 },
+    "서울특별시 서대문구": { lat: 37.5791, lng: 126.9368 },
     "서울특별시 서초구": { lat: 37.4836, lng: 127.0327 },
-    "서울특별시 강동구": { lat: 37.5301, lng: 127.1238 },
+    "서울특별시 성동구": { lat: 37.5634, lng: 127.0371 },
     "서울특별시 성북구": { lat: 37.5894, lng: 127.0167 },
-    "서울특별시 도봉구": { lat: 37.6688, lng: 127.0471 },
-    "서울특별시 노원구": { lat: 37.6543, lng: 127.0565 },
-    "서울특별시 강서구": { lat: 37.5509, lng: 126.849 },
-    "서울특별시 양천구": { lat: 37.5169, lng: 126.8664 },
-    "서울특별시 구로구": { lat: 37.4954, lng: 126.8874 },
-    "서울특별시 금천구": { lat: 37.4568, lng: 126.895 },
     "서울특별시 송파구": { lat: 37.5145, lng: 127.1066 },
-    "서울특별시 강남구": { lat: 37.5173, lng: 127.0473 },
-    "경기도 화성시 와우리": { lat: 37.2092, lng: 126.9769 },
-    "경기도 수원시 팔달구": { lat: 37.292, lng: 127.0107 },
-    "경기도 수원시 장안구": { lat: 37.2951, lng: 126.9739 },
+    "서울특별시 양천구": { lat: 37.5169, lng: 126.8664 },
+    "서울특별시 영등포구": { lat: 37.5263, lng: 126.8962 },
+    "서울특별시 용산구": { lat: 37.5311, lng: 126.9819 },
+    "서울특별시 은평구": { lat: 37.6027, lng: 126.9292 },
+    "서울특별시 종로구": { lat: 37.5735, lng: 126.9788 },
+    "서울특별시 중구": { lat: 37.5641, lng: 126.9979 },
+    "서울특별시 중랑구": { lat: 37.6063, lng: 127.0925 },
+    
+    // 경기도 좌표
     "경기도 수원시": { lat: 37.2636, lng: 127.0286 },
+    "경기도 성남시": { lat: 37.4201, lng: 127.1262 },
+    "경기도 고양시": { lat: 37.6584, lng: 126.8320 },
+    "경기도 용인시": { lat: 37.2410, lng: 127.1776 },
+    "경기도 부천시": { lat: 37.5034, lng: 126.7660 },
+    "경기도 안산시": { lat: 37.3219, lng: 126.8309 },
+    "경기도 안양시": { lat: 37.3943, lng: 126.9568 },
+    "경기도 남양주시": { lat: 37.6361, lng: 127.2167 },
+    "경기도 화성시": { lat: 37.1995, lng: 126.8311 },
+    "경기도 평택시": { lat: 36.9921, lng: 127.1128 },
+    "경기도 의정부시": { lat: 37.7381, lng: 127.0337 },
+    "경기도 시흥시": { lat: 37.3799, lng: 126.8028 },
+    "경기도 파주시": { lat: 37.7599, lng: 126.7800 },
+    "경기도 김포시": { lat: 37.6152, lng: 126.7158 },
+    "경기도 광명시": { lat: 37.4786, lng: 126.8644 },
+    "경기도 광주시": { lat: 37.4294, lng: 127.2550 },
+    "경기도 군포시": { lat: 37.3617, lng: 126.9352 },
+    "경기도 하남시": { lat: 37.5393, lng: 127.2148 },
+    "경기도 오산시": { lat: 37.1498, lng: 127.0773 },
+    "경기도 양주시": { lat: 37.7853, lng: 127.0458 },
+    "경기도 이천시": { lat: 37.2723, lng: 127.4349 },
+    "경기도 구리시": { lat: 37.5943, lng: 127.1296 },
+    "경기도 안성시": { lat: 37.0079, lng: 127.2797 },
+    "경기도 포천시": { lat: 37.8948, lng: 127.2002 },
+    "경기도 의왕시": { lat: 37.3449, lng: 126.9684 },
+    "경기도 양평군": { lat: 37.4913, lng: 127.4874 },
+    "경기도 여주시": { lat: 37.2976, lng: 127.6376 },
+    "경기도 동두천시": { lat: 37.9034, lng: 127.0606 },
+    "경기도 과천시": { lat: 37.4290, lng: 126.9875 },
+    "경기도 가평군": { lat: 37.8314, lng: 127.5095 },
+    "경기도 연천군": { lat: 38.0965, lng: 127.0748 },
   };
 
   // ─────────────────────────────
@@ -106,9 +133,14 @@ function Map() {
   const urlLat = searchParams.get("lat");
   const urlLng = searchParams.get("lng");
   const chatbotRestaurants = location.state?.restaurants;
+  
+  // ⭐ main.js에서 전달받은 지역 정보
+  const stateProvince = location.state?.province;
+  const stateDistrict = location.state?.district;
 
-  const initialProvince = "all";
-  const initialDistrict = "all";
+  // ⭐ 초기값 설정: main.js에서 전달받은 값이 있으면 그걸 사용
+  const initialProvince = stateProvince || "all";
+  const initialDistrict = stateDistrict || "all";
 
   const [selectedProvince, setSelectedProvince] = useState(initialProvince);
   const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
@@ -123,7 +155,6 @@ function Map() {
 
   const [mapMarkers, setMapMarkers] = useState({});
 
-
   // ─────────────────────────────
   // 공통: 주변 맛집 목록 가져오기
   // ─────────────────────────────
@@ -131,7 +162,6 @@ function Map() {
     setIsListLoading(true);
     try {
       const listData = await apiGet(`/restaurants/nearby?radius=${radius}`);
-      // listData: [{ res_id, res_name, lat, lng, ...}]
       setNearbyList(listData);
     } catch (error) {
       console.error("주변 맛집 조회 오류:", error);
@@ -147,20 +177,18 @@ function Map() {
     if (!restaurant) return;
     setIsLoading(true);
     try {
-      // 1) 식당 상세 (좌표 기반 조회)
       const detailRes = await apiGet(
         `/restaurant/detail?lat=${restaurant.lat}&lng=${restaurant.lng}`
       );
-      const detail = detailRes.data || detailRes; // {res_id, res_name, address, ...}
+      const detail = detailRes.data || detailRes;
 
-      // 2) 이 식당의 리뷰 목록 (최신 3개 정도만)
       let reviewItems = [];
       let reviewTotal = 0;
       try {
         const reviewRes = await apiGet(
           `/reviews/restaurant/${detail.res_id}?page=1&per_page=3&order=recent`
         );
-        const rdata = reviewRes.data || reviewRes; // {items, total, ...}
+        const rdata = reviewRes.data || reviewRes;
         reviewItems = rdata.items || [];
         reviewTotal =
           typeof rdata.total === "number"
@@ -201,43 +229,32 @@ function Map() {
 
     const map = new window.kakao.maps.Map(mapContainer.current, options);
 
-    // 줌 컨트롤
     const zoomControl = new window.kakao.maps.ZoomControl();
     map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
     map.setZoomable(true);
 
     setMapInstance(map);
 
-    // ⭐ 챗봇 추천인 경우 → 추천된 맛집만 표시
     const markersToShow =
       source === "chatbot" && chatbotRestaurants?.length > 0
         ? chatbotRestaurants
         : markerData;
 
-    // ⭐ 모든 마커의 범위 계산용 bounds
     const bounds = new window.kakao.maps.LatLngBounds();
 
-    // 마커 생성
     markersToShow.forEach((resto) => {
       const markerPosition = new window.kakao.maps.LatLng(resto.lat, resto.lng);
       const marker = new window.kakao.maps.Marker({ position: markerPosition });
 
       marker.setMap(map);
-      bounds.extend(markerPosition); // ← 화면 자동조절용 영역 포함
+      bounds.extend(markerPosition);
 
-      // 마커 클릭 → 상세 + 리뷰
       window.kakao.maps.event.addListener(marker, "click", () => {
         map.panTo(markerPosition);
         fetchRestaurantDetailWithReviews(resto);
       });
     });
 
-    // ⭐ 마커 여러 개일 때 자동으로 다 보이도록 조절
-    /*if (markersToShow.length > 0) {
-      map.setBounds(bounds);
-    }*/
-
-    // 지도 드래그 후 중심 이동 처리
     window.kakao.maps.event.addListener(map, "dragend", async () => {
       const newCenter = map.getCenter();
       try {
@@ -258,11 +275,9 @@ function Map() {
     });
   };
 
-
   // ─────────────────────────────
   // 1. 컴포넌트 마운트 시: 지도 + 마커 초기화
   // ─────────────────────────────
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let targetCoords = null;
 
@@ -270,13 +285,17 @@ function Map() {
     if (source === "chatbot" && chatbotRestaurants?.length > 0) {
       targetCoords = getAverageCoords(chatbotRestaurants);
     }
-
-    // 📌 2) URL 기반 위치 지정
+    // 📌 2) 주소 검색 결과 → 선택된 지역 좌표
+    else if (source === "address" && stateProvince && stateDistrict) {
+      const locationKey = `${stateProvince} ${stateDistrict}`;
+      targetCoords = LOCATION_COORDS[locationKey] || { lat: 37.2636, lng: 127.0286 };
+      console.log(`📍 주소 검색: ${locationKey}`, targetCoords);
+    }
+    // 📌 3) URL 기반 위치 지정 (현재 위치)
     else if (source === "geolocation" && urlLat && urlLng) {
       targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
     }
-
-    // 📌 3) 기본 위치 (수원)
+    // 📌 4) 기본 위치 (수원)
     else {
       targetCoords = { lat: 37.2636, lng: 127.0286 };
     }
@@ -319,17 +338,18 @@ function Map() {
   }, [radius, mapInstance, source]);
 
   // ─────────────────────────────
-  // 3) 지역 변경 시 지도 이동 (fallback 없음)
+  // 3) 지역 변경 시 지도 이동
   // ─────────────────────────────
   useEffect(() => {
     if (!mapInstance) return;
+    if (selectedProvince === "all") return; // "지역 전체" 선택 시 이동 안 함
 
     const currentKey = `${selectedProvince} ${selectedDistrict}`;
-
     let targetCoords = null;
 
     if (LOCATION_COORDS[currentKey]) {
       targetCoords = LOCATION_COORDS[currentKey];
+      console.log(`🗺️ 지도 이동: ${currentKey}`, targetCoords);
     } else {
       const c = mapInstance.getCenter();
       targetCoords = { lat: c.getLat(), lng: c.getLng() };

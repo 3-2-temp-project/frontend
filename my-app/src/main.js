@@ -16,17 +16,21 @@ function Main() {
   // ─────────────────────────────
   const [chatOpen, setChatOpen] = useState(false);
   const [searchTab, setSearchTab] = useState("current");
-  const [addressInput, setAddressInput] = useState("");
+  
+  // 주소 검색 상태 변경
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
   const [searchError, setSearchError] = useState("");
   
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState('');
+  
   useEffect(() => {
     const storedUserId = sessionStorage.getItem("currentUserId");
 
     if (storedUserId) {
         setIsLoggedIn(true);
-        setUserId(storedUserId); // 상태에 아이디 저장
+        setUserId(storedUserId);
     }
   }, []);
 
@@ -45,11 +49,25 @@ function Main() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
+  // 지역 데이터
+  const regions = {
+    "서울특별시": [
+      "강남구", "강동구", "강북구", "강서구", "관악구", "광진구", "구로구", "금천구",
+      "노원구", "도봉구", "동대문구", "동작구", "마포구", "서대문구", "서초구", "성동구",
+      "성북구", "송파구", "양천구", "영등포구", "용산구", "은평구", "종로구", "중구", "중랑구"
+    ],
+    "경기도": [
+      "수원시", "성남시", "고양시", "용인시", "부천시", "안산시", "안양시", "남양주시",
+      "화성시", "평택시", "의정부시", "시흥시", "파주시", "김포시", "광명시", "광주시",
+      "군포시", "하남시", "오산시", "양주시", "이천시", "구리시", "안성시", "포천시",
+      "의왕시", "양평군", "여주시", "동두천시", "과천시", "가평군", "연천군"
+    ]
+  };
+
   // ─────────────────────────────
   // 초기 로딩: 세션 초기화 + 서버 상태 체크
   // ─────────────────────────────
   useEffect(() => {
-    // ✅ 페이지 새로고침 시 챗봇 세션 초기화
     localStorage.removeItem("chatSessionId");
 
     const checkServerStatus = async () => {
@@ -93,16 +111,12 @@ function Main() {
     const userInput = (customMessage ?? inputValue).trim();
     if (!userInput || isLoading) return;
 
-    // 메시지 UI에 사용자 입력 추가
     setMessages(prev => [
       ...prev,
       { id: Date.now(), sender: "user", text: userInput }
     ]);
     setInputValue("");
 
-    // ─────────────────────────────
-    // 1단계: 지역 선택
-    // ─────────────────────────────
     if (currentStep === 1) {
       setMessages(prev => [
         ...prev,
@@ -116,16 +130,11 @@ function Main() {
         }
       ]);
 
-      // 지역 저장
       window.selectedLocation = userInput;
-
       setCurrentStep(2);
       return;
     }
 
-    // ─────────────────────────────
-    // 2단계: 카테고리 선택 → SQL 실행
-    // ─────────────────────────────
     if (currentStep === 2) {
       setIsLoading(true);
 
@@ -138,7 +147,6 @@ function Main() {
           category: selectedCategory
         });
 
-        // 추천 없음
         if (!response.items || response.items.length === 0) {
           setMessages(prev => [
             ...prev,
@@ -147,7 +155,6 @@ function Main() {
           return;
         }
 
-        // 추천 있음
         setMessages(prev => [
           ...prev,
           { id: Date.now() + 1, sender: "bot", text: "추천 결과예요! 👇" },
@@ -218,41 +225,34 @@ function Main() {
   };
 
   // ─────────────────────────────
-  // 주소 검색 + Kakao API
+  // 주소 검색 + Kakao API (콤보박스 버전)
   // ─────────────────────────────
   const handleSearchAddress = async () => {
-    if (addressInput.trim() === "") {
-      setSearchError("주소를 입력해주세요.");
+    if (!selectedProvince || !selectedDistrict) {
+      setSearchError("지역을 선택해주세요.");
       return;
     }
     setSearchError("");
 
     const KAKAO_API_KEY = "cb5e37cbdbc7daee55c8160e0c2da967";
+    const searchQuery = `${selectedProvince} ${selectedDistrict}`;
 
     try {
       const kakaoResponse = await fetch(
-        `https://dapi.kakao.com/v2/local/search/address.json?query=${addressInput}`,
+        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(searchQuery)}`,
         { headers: { Authorization: `KakaoAK ${KAKAO_API_KEY}` } }
       );
       if (!kakaoResponse.ok) throw new Error("Kakao API 호출 실패");
 
       const data = await kakaoResponse.json();
       if (data.documents.length === 0) {
-        setSearchError("유효한 주소를 찾을 수 없습니다.");
+        setSearchError("해당 지역의 좌표를 찾을 수 없습니다.");
         return;
       }
 
       const doc = data.documents[0];
       const lat = doc.y;
       const lng = doc.x;
-      const province = doc.address.region_1depth_name;
-      const district = doc.address.region_2depth_name;
-
-      const ALLOWED_PROVINCES = ["서울특별시", "경기도"];
-      if (!ALLOWED_PROVINCES.includes(province)) {
-        setSearchError("현재 서울/경기 지역만 서비스 중입니다.");
-        return;
-      }
 
       const serverResponse = await fetch(`${API_BASE_URL}/location`, {
         method: "POST",
@@ -265,8 +265,8 @@ function Main() {
       navigate("/map", {
         state: {
           source: "address",
-          province: province,
-          district: district.split(" ")[0],
+          province: selectedProvince,
+          district: selectedDistrict,
         },
       });
     } catch (error) {
@@ -325,7 +325,7 @@ function Main() {
               <>
                 <Link to="/login" className="btn-link">
                   로그인
-                  </Link>
+                </Link>
                 <Link to="/register" className="btn-primary-outline">
                   회원가입
                 </Link>
@@ -406,27 +406,77 @@ function Main() {
               ) : (
                 <div className="tab-content fade-in">
                   <p className="info-text">
-                    원하시는 지역(동/구)을 입력해주세요.
+                    원하시는 지역을 선택해주세요.
                   </p>
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      value={addressInput}
-                      onChange={(e) => setAddressInput(e.target.value)}
-                      onKeyPress={(e) =>
-                        e.key === "Enter" && handleSearchAddress()
-                      }
-                      placeholder="예) 강남구 역삼동, 수원시청"
-                    />
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {/* 시/도 선택 */}
+                    <select
+                      value={selectedProvince}
+                      onChange={(e) => {
+                        setSelectedProvince(e.target.value);
+                        setSelectedDistrict(""); // 시/도 변경 시 구/시 초기화
+                        setSearchError("");
+                      }}
+                      style={{
+                        padding: "14px",
+                        fontSize: "1rem",
+                        border: "2px solid #e0e0e0",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        backgroundColor: "white",
+                        transition: "border-color 0.3s"
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = "#0073e6"}
+                      onBlur={(e) => e.target.style.borderColor = "#e0e0e0"}
+                    >
+                      <option value="">시/도 선택</option>
+                      <option value="서울특별시">서울특별시</option>
+                      <option value="경기도">경기도</option>
+                    </select>
+
+                    {/* 구/시 선택 */}
+                    <select
+                      value={selectedDistrict}
+                      onChange={(e) => {
+                        setSelectedDistrict(e.target.value);
+                        setSearchError("");
+                      }}
+                      disabled={!selectedProvince}
+                      style={{
+                        padding: "14px",
+                        fontSize: "1rem",
+                        border: "2px solid #e0e0e0",
+                        borderRadius: "10px",
+                        cursor: selectedProvince ? "pointer" : "not-allowed",
+                        backgroundColor: selectedProvince ? "white" : "#f5f5f5",
+                        transition: "border-color 0.3s"
+                      }}
+                      onFocus={(e) => selectedProvince && (e.target.style.borderColor = "#0073e6")}
+                      onBlur={(e) => e.target.style.borderColor = "#e0e0e0"}
+                    >
+                      <option value="">구/시 선택</option>
+                      {selectedProvince && regions[selectedProvince].map(district => (
+                        <option key={district} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* 검색 버튼 */}
                     <button
                       onClick={handleSearchAddress}
-                      className="search-icon-btn"
+                      className="action-btn full-width"
+                      disabled={!selectedProvince || !selectedDistrict}
+                      style={{
+                        opacity: (!selectedProvince || !selectedDistrict) ? 0.5 : 1,
+                        cursor: (!selectedProvince || !selectedDistrict) ? "not-allowed" : "pointer"
+                      }}
                     >
-                      🔍
+                      검색하기 🔍
                     </button>
                   </div>
                   {searchError && (
-                    <p className="error-msg">{searchError}</p>
+                    <p className="error-msg" style={{ marginTop: "10px" }}>{searchError}</p>
                   )}
                 </div>
               )}
@@ -499,7 +549,6 @@ function Main() {
                         </React.Fragment>
                       ))}
 
-                      {/* ✅ 마지막 메시지일 때만 지도 버튼 표시 */}
                       {msg.showMapButton && isLast && (
                         <button
                           className="map-link-btn"
