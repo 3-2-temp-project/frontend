@@ -18,7 +18,7 @@ function Main() {
   const [searchTab, setSearchTab] = useState("current");
   const [addressInput, setAddressInput] = useState("");
   const [searchError, setSearchError] = useState("");
-  
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState('');
   
@@ -61,21 +61,6 @@ function Main() {
     checkServerStatus();
   }, []);
 
-  const handleLogout = async () => {
-    try {
-        await logout(); 
-        
-        sessionStorage.removeItem("currentUserId");
-        
-        setIsLoggedIn(false);
-        setUserId('');
-        alert("로그아웃 되었습니다.");
-        navigate('/'); 
-
-    } catch (error) {
-        console.error("로그아웃 실패:", error);
-    }
-  };
 
   // 메시지 변경 시 챗봇 영역 자동 스크롤
   useEffect(() => {
@@ -133,6 +118,22 @@ function Main() {
       ]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+        await logout(); 
+        
+        sessionStorage.removeItem("currentUserId");
+        
+        setIsLoggedIn(false);
+        setUserId('');
+        alert("로그아웃 되었습니다.");
+        navigate('/'); 
+
+    } catch (error) {
+        console.error("로그아웃 실패:", error);
     }
   };
 
