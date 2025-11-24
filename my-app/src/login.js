@@ -45,9 +45,9 @@ function Login() {
       setLoading(true);
       setErrorMsg("");
       const res = await login(userId, password);
-
+      sessionStorage.setItem("currentUserId", userId);
       // 로그인 성공 시
-      navigate("/me");
+      navigate("/main");
     } catch (err) {
       console.error(err);
       setErrorMsg(err.message || "아이디 또는 비밀번호가 일치하지 않습니다.");

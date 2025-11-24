@@ -127,10 +127,11 @@
   transition: all 0.2s;
   outline: none;
 }
+/*
 .auth-input.with-icon {
-  padding-left: 45px; /* 아이콘 공간 확보 */
+  padding-left: 45px;
 }
-
+*/
 .auth-input:focus {
   background: #ffffff;
   border-color: #2563eb;

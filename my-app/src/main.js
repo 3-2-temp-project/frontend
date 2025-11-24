@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./main.css";
 import { askChat } from "./chat";
+import { logout } from './authApi';
 
 const API_BASE_URL = "http://localhost:5000";
 
@@ -17,21 +18,28 @@ function Main() {
   const [searchTab, setSearchTab] = useState("current");
   const [addressInput, setAddressInput] = useState("");
   const [searchError, setSearchError] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useState('');
+  useEffect(() => {
+    const storedUserId = sessionStorage.getItem("currentUserId");
+
+    if (storedUserId) {
+        setIsLoggedIn(true);
+        setUserId(storedUserId); // 상태에 아이디 저장
+    }
+  }, []);
 
   const [isServerOnline, setIsServerOnline] = useState(null);
 
   const [messages, setMessages] = useState([
     {
       id: 1,
-      type: "buttons",
-      text: "안녕하세요! 공맛집입니다! 😋\n원하시는 지역을 선택해주세요.",
+      text: "안녕하세요! 공맛집입니다! 😋\n원하시는 지역이나 메뉴를 말씀해주세요.",
       sender: "bot",
-      options: ["수원시", "화성시"]
     },
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
 
   // ─────────────────────────────
   // 초기 로딩: 세션 초기화 + 서버 상태 체크
@@ -53,6 +61,22 @@ function Main() {
     checkServerStatus();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+        await logout(); 
+        
+        sessionStorage.removeItem("currentUserId");
+        
+        setIsLoggedIn(false);
+        setUserId('');
+        alert("로그아웃 되었습니다.");
+        navigate('/'); 
+
+    } catch (error) {
+        console.error("로그아웃 실패:", error);
+    }
+  };
+
   // 메시지 변경 시 챗봇 영역 자동 스크롤
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -61,89 +85,54 @@ function Main() {
   // ─────────────────────────────
   // 챗봇 메시지 전송
   // ─────────────────────────────
-  const handleSendMessage = async (customMessage = null) => {
-    const userInput = (customMessage ?? inputValue).trim();
-    if (!userInput || isLoading) return;
+  const handleSendMessage = async () => {
+    const userInput = inputValue.trim();
+    if (userInput === "" || isLoading) return;
 
-    // 메시지 UI에 사용자 입력 추가
-    setMessages(prev => [
-      ...prev,
-      { id: Date.now(), sender: "user", text: userInput }
-    ]);
+    const newUserMessage = { id: Date.now(), text: userInput, sender: "user" };
+    setMessages((prev) => [...prev, newUserMessage]);
     setInputValue("");
+    setIsLoading(true);
 
-    // ─────────────────────────────
-    // 1단계: 지역 선택
-    // ─────────────────────────────
-    if (currentStep === 1) {
-      setMessages(prev => [
-        ...prev,
-        { id: Date.now() + 1, sender: "bot", text: `${userInput} 선택 완료!` },
-        {
+    try {
+      const response = await askChat(userInput);
+
+      // 기본 봇 응답
+      const botMessage = {
+        id: Date.now() + 1,
+        text: response.answer || "응답 없음",
+        sender: "bot",
+      };
+      setMessages((prev) => [...prev, botMessage]);
+
+      // 추천 결과가 있을 때만 지도 버튼 메시지 추가
+      if (
+        response.items &&
+        response.items.length > 0 &&
+        response.answer &&
+        response.answer.includes("추천드릴게요")
+      ) {
+        const mapPrompt = {
           id: Date.now() + 2,
+          text: "추천된 식당들을 지도에서 확인해보세요! 👇",
           sender: "bot",
-          type: "buttons",
-          text: "어떤 종류의 음식을 찾고 계신가요?",
-          options: ["한식", "중식", "일식", "양식", "카페", "분식"]
-        }
-      ]);
-
-      // 지역 저장
-      window.selectedLocation = userInput;
-
-      setCurrentStep(2);
-      return;
-    }
-
-    // ─────────────────────────────
-    // 2단계: 카테고리 선택 → SQL 실행
-    // ─────────────────────────────
-    if (currentStep === 2) {
-      setIsLoading(true);
-
-      const selectedCategory = userInput;
-      const location = window.selectedLocation;
-
-      try {
-        const response = await askChat({
-          location,
-          category: selectedCategory
-        });
-
-        // 추천 없음
-        if (!response.items || response.items.length === 0) {
-          setMessages(prev => [
-            ...prev,
-            { id: Date.now(), sender: "bot", text: "조건에 맞는 맛집을 찾지 못했어요 😢" }
-          ]);
-          return;
-        }
-
-        // 추천 있음
-        setMessages(prev => [
-          ...prev,
-          { id: Date.now() + 1, sender: "bot", text: "추천 결과예요! 👇" },
-          {
-            id: Date.now() + 2,
-            sender: "bot",
-            text: "지도로 보기 원하시면 아래 버튼을 눌러주세요!",
-            showMapButton: true,
-            restaurants: response.items
-          }
-        ]);
-
-        setCurrentStep(3);
-
-      } catch (e) {
-        setMessages(prev => [
-          ...prev,
-          { id: Date.now(), sender: "bot", text: "서버 오류가 발생했습니다." }
-        ]);
-      } finally {
-        setIsLoading(false);
+          showMapButton: true,
+          restaurants: response.items,
+        };
+        setMessages((prevMessages) => [...prevMessages, mapPrompt]);
       }
-
-      return;
+    } catch (error) {
+      console.error(error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          text: "죄송합니다. 서버 통신 중 오류가 발생했습니다.",
+          sender: "bot",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -275,19 +264,40 @@ function Main() {
             ></div>
           </div>
           <nav className="nav-links">
-            <Link to="/me">내 정보</Link>
-            <Link to="/login" className="btn-link">
-              로그인
-            </Link>
-            <Link to="/register" className="btn-primary-outline">
-              회원가입
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link to="/me" style={{ marginRight: '10px' }}>내 정보</Link>
+                <span style={{ fontWeight: 'bold', color: '#0073e6', marginRight: '10px' }}>
+                    {userId}님
+                </span>
+                <button 
+                    onClick={handleLogout}
+                    style={{ 
+                        background: 'transparent', 
+                        border: 'none', 
+                        cursor: 'pointer', 
+                        fontSize: '1rem', 
+                        color: '#333',
+                        padding: 0
+                    }}
+                >로그아웃</button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="btn-link">
+                  로그인
+                  </Link>
+                <Link to="/register" className="btn-primary-outline">
+                  회원가입
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>
 
       {/* 메인 히어로 + 검색 패널 */}
-      <main className="hero-section">
+      <main className={`hero-section ${chatOpen ? "card-shift" : ""}`}>
         <div className="hero-content">
           <div className="hero-text">
             <span className="hero-badge">공무원 인증 맛집 플랫폼</span>
@@ -357,7 +367,7 @@ function Main() {
               ) : (
                 <div className="tab-content fade-in">
                   <p className="info-text">
-                    원하시는 지역(동/구)을 입력해주세요.
+                    원하시는 지역(시/구)을 입력해주세요.
                   </p>
                   <div className="input-group">
                     <input
@@ -367,7 +377,7 @@ function Main() {
                       onKeyPress={(e) =>
                         e.key === "Enter" && handleSearchAddress()
                       }
-                      placeholder="예) 강남구 역삼동, 수원시청"
+                      placeholder="예) 서울특별시 강남구, 화성시 와우리"
                     />
                     <button
                       onClick={handleSearchAddress}
@@ -408,30 +418,6 @@ function Main() {
 
             <div className="chat-messages">
               {messages.map((msg, idx) => {
-                if (msg.type === "buttons") {
-                  return (
-                    <div key={msg.id} className="message-row bot">
-                      <div className="sender-icon">🤖</div>
-                      <div className="message-bubble button-bubble">
-                        {msg.text.split("\n").map((line, i) => (
-                          <React.Fragment key={i}>{line}<br/></React.Fragment>
-                        ))}
-
-                        <div className="chat-button-group">
-                          {msg.options.map(opt => (
-                            <button
-                              key={opt}
-                              className="chat-option-btn"
-                              onClick={() => handleSendMessage(opt)}
-                            >
-                              {opt}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
                 const isLast = idx === messages.length - 1;
 
                 return (
@@ -458,14 +444,7 @@ function Main() {
                             navigate("/map", {
                               state: {
                                 source: "chatbot",
-                                restaurants: msg.restaurants.map(r => ({
-                                  res_id: r.id,
-                                  res_name: r.name,
-                                  category: r.category,
-                                  address: r.address,
-                                  lat: r.lat,
-                                  lng: r.lng
-                                }))
+                                restaurants: msg.restaurants,
                               },
                             })
                           }
@@ -501,7 +480,7 @@ function Main() {
                 onKeyPress={(e) =>
                   e.key === "Enter" && handleSendMessage()
                 }
-                disabled={isLoading || currentStep <= 3} 
+                disabled={isLoading}
               />
               <button onClick={handleSendMessage} disabled={isLoading}>
                 ➤

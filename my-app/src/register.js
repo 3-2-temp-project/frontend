@@ -244,7 +244,7 @@ function Register() {
                 <label>인증번호</label>
                 <div className="input-with-btn">
                   <input
-                    placeholder="코드 6자리"
+                    placeholder="코드 4자리"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                   />

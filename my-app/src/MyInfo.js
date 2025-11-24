@@ -91,7 +91,7 @@ function MyInfo() {
           </Link>
           <h1 className="page-title">내 정보</h1>
           <p className="page-subtitle">
-            반갑습니다, <strong>{me.user_name}</strong>님! 👋
+            반갑습니다, <strong>{me.user_nickname}</strong>님! 👋
           </p>
         </div>
 
