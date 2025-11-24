@@ -26,6 +26,20 @@ async function apiPost(path, body) {
   return res.json();
 }
 
+function getAverageCoords(restaurants) {
+  if (!restaurants || restaurants.length === 0) return null;
+
+  const avgLat =
+    restaurants.reduce((sum, r) => sum + parseFloat(r.lat), 0) /
+    restaurants.length;
+
+  const avgLng =
+    restaurants.reduce((sum, r) => sum + parseFloat(r.lng), 0) /
+    restaurants.length;
+
+  return { lat: avgLat, lng: avgLng };
+}
+
 function Map() {
   const mapContainer = useRef(null);
   const location = useLocation();
@@ -93,8 +107,8 @@ function Map() {
   const urlLng = searchParams.get("lng");
   const chatbotRestaurants = location.state?.restaurants;
 
-  const initialProvince = urlLat ? "all" : PROVINCES[0];
-  const initialDistrict = urlLat ? "all" : DISTRICTS_BY_PROVINCE[PROVINCES[0]][0];
+  const initialProvince = "all";
+  const initialDistrict = "all";
 
   const [selectedProvince, setSelectedProvince] = useState(initialProvince);
   const [selectedDistrict, setSelectedDistrict] = useState(initialDistrict);
@@ -106,6 +120,9 @@ function Map() {
 
   const [mapInstance, setMapInstance] = useState(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+
+  const [mapMarkers, setMapMarkers] = useState({});
+
 
   // ─────────────────────────────
   // 공통: 주변 맛집 목록 가져오기
@@ -174,6 +191,7 @@ function Map() {
       targetCoords.lat,
       targetCoords.lng
     );
+
     const options = {
       center,
       level: 4,
@@ -190,14 +208,22 @@ function Map() {
 
     setMapInstance(map);
 
-    // 마커들 올리기
-    markerData.forEach((resto) => {
-      const markerPosition = new window.kakao.maps.LatLng(
-        resto.lat,
-        resto.lng
-      );
+    // ⭐ 챗봇 추천인 경우 → 추천된 맛집만 표시
+    const markersToShow =
+      source === "chatbot" && chatbotRestaurants?.length > 0
+        ? chatbotRestaurants
+        : markerData;
+
+    // ⭐ 모든 마커의 범위 계산용 bounds
+    const bounds = new window.kakao.maps.LatLngBounds();
+
+    // 마커 생성
+    markersToShow.forEach((resto) => {
+      const markerPosition = new window.kakao.maps.LatLng(resto.lat, resto.lng);
       const marker = new window.kakao.maps.Marker({ position: markerPosition });
+
       marker.setMap(map);
+      bounds.extend(markerPosition); // ← 화면 자동조절용 영역 포함
 
       // 마커 클릭 → 상세 + 리뷰
       window.kakao.maps.event.addListener(marker, "click", () => {
@@ -206,7 +232,12 @@ function Map() {
       });
     });
 
-    // 지도 드래그 후 중심이동 시 → 위치 저장 + 주변맛집 새로고침
+    // ⭐ 마커 여러 개일 때 자동으로 다 보이도록 조절
+    if (markersToShow.length > 0) {
+      map.setBounds(bounds);
+    }
+
+    // 지도 드래그 후 중심 이동 처리
     window.kakao.maps.event.addListener(map, "dragend", async () => {
       const newCenter = map.getCenter();
       try {
@@ -217,63 +248,61 @@ function Map() {
       } catch (e) {
         console.error("위치 저장 실패:", e);
       }
+
       setSelectedProvince("all");
       setSelectedDistrict("all");
-      fetchNearbyRestaurants();
+
+      if (source !== "chatbot") {
+        fetchNearbyRestaurants();
+      }
     });
   };
+
 
   // ─────────────────────────────
   // 1. 컴포넌트 마운트 시: 지도 + 마커 초기화
   // ─────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    let targetCoords;
+    let targetCoords = null;
 
-    if (source === "geolocation" && urlLat && urlLng) {
+    // 📌 1) 챗봇 추천 결과 → 평균 좌표 중심
+    if (source === "chatbot" && chatbotRestaurants?.length > 0) {
+      targetCoords = getAverageCoords(chatbotRestaurants);
+    }
+
+    // 📌 2) URL 기반 위치 지정
+    else if (source === "geolocation" && urlLat && urlLng) {
       targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
-    } else {
-      const currentKey = `${selectedProvince} ${selectedDistrict}`;
-      targetCoords =
-        LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
+    }
+
+    // 📌 3) 기본 위치 (수원)
+    else {
+      targetCoords = { lat: 37.2636, lng: 127.0286 };
     }
 
     const fetchMarkersAndInitMap = async () => {
       setIsLoading(true);
+
       try {
         const markerData = await apiGet("/restaurants/markers");
 
         const loadKakao = () => {
-          window.kakao.maps.load(() =>
-            initMap(markerData, targetCoords)
-          );
+          window.kakao.maps.load(() => initMap(markerData, targetCoords));
         };
 
-        if (window.kakao && window.kakao.maps) {
-          loadKakao();
-        } else {
+        if (window.kakao && window.kakao.maps) loadKakao();
+        else {
           const script = document.createElement("script");
           script.src =
             "//dapi.kakao.com/v2/maps/sdk.js?appkey=920ae06c68357b930c999434271d8194&autoload=false";
           script.async = true;
           document.head.appendChild(script);
-          script.onload = () => {
-            window.kakao.maps.load(() =>
-              initMap(markerData, targetCoords)
-            );
-          };
+          script.onload = () => window.kakao.maps.load(() => initMap(markerData, targetCoords));
         }
 
-        if (source !== "chatbot") {
-          await fetchNearbyRestaurants();
-        }
-      } catch (error) {
-        console.error(error);
-        if (window.kakao && window.kakao.maps) {
-          window.kakao.maps.load(() =>
-            initMap([], targetCoords)
-          );
-        }
+        if (source !== "chatbot") await fetchNearbyRestaurants();
+        else setNearbyList(chatbotRestaurants);
       } finally {
         setIsLoading(false);
       }
@@ -283,47 +312,32 @@ function Map() {
   }, []);
 
   // ─────────────────────────────
-  // 2. 반경 변경 시 주변 맛집 목록 갱신
+  // 2) 반경 변경 시 갱신
   // ─────────────────────────────
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (mapInstance && source !== "chatbot") {
-      fetchNearbyRestaurants();
-    }
+    if (mapInstance && source !== "chatbot") fetchNearbyRestaurants();
   }, [radius, mapInstance, source]);
 
   // ─────────────────────────────
-  // 3. 챗봇 추천 리스트 연동
+  // 3) 지역 변경 시 지도 이동 (fallback 없음)
   // ─────────────────────────────
-  useEffect(() => {
-    if (source === "chatbot" && chatbotRestaurants) {
-      setNearbyList(chatbotRestaurants);
-    }
-  }, [source, chatbotRestaurants]);
-
-  // ─────────────────────────────
-  // 4. 지역 선택 변경 시, 지도 중심 이동
-  // ─────────────────────────────
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!mapInstance) return;
 
-    let targetCoords;
-    if (selectedProvince === "all" && urlLat && urlLng) {
-      targetCoords = { lat: parseFloat(urlLat), lng: parseFloat(urlLng) };
+    const currentKey = `${selectedProvince} ${selectedDistrict}`;
+
+    let targetCoords = null;
+
+    if (LOCATION_COORDS[currentKey]) {
+      targetCoords = LOCATION_COORDS[currentKey];
     } else {
-      const currentKey = `${selectedProvince} ${selectedDistrict}`;
-      targetCoords =
-        LOCATION_COORDS[currentKey] || LOCATION_COORDS["서울특별시 은평구"];
+      const c = mapInstance.getCenter();
+      targetCoords = { lat: c.getLat(), lng: c.getLng() };
     }
 
-    const center = new window.kakao.maps.LatLng(
-      targetCoords.lat,
-      targetCoords.lng
-    );
-    mapInstance.setCenter(center);
+    mapInstance.setCenter(new window.kakao.maps.LatLng(targetCoords.lat, targetCoords.lng));
     setSelectedRestaurant(null);
-  }, [selectedProvince, selectedDistrict, mapInstance, urlLat, urlLng]);
+  }, [selectedProvince, selectedDistrict, mapInstance]);
 
   // ─────────────────────────────
   // 핸들러들
