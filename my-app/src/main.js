@@ -27,8 +27,10 @@ function Main() {
   const [messages, setMessages] = useState([
     {
       id: 1,
+      type: "buttons",
       text: "안녕하세요! 공맛집입니다! 😋\n원하시는 지역이나 메뉴를 말씀해주세요.",
       sender: "bot",
+      options: ["수원시", "화성시"]
     },
   ]);
   const [inputValue, setInputValue] = useState("");
@@ -38,7 +40,7 @@ function Main() {
   // 초기 로딩: 세션 초기화 + 서버 상태 체크
   // ─────────────────────────────
   useEffect(() => {
-    
+
     const storedUserId = sessionStorage.getItem("currentUserId");
     if (storedUserId) {
         setIsLoggedIn(true);

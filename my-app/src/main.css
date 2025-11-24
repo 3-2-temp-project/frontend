@@ -480,11 +480,6 @@
   .hero-section {
     flex-direction: column;
     padding: 20px;
-    position: relative;
-    transition: transform 0.3s ease-out;
-  }
-  .hero-section.card-shift {
-    transform: translateY(-200px);
   }
   .hero-content {
     flex-direction: column;
