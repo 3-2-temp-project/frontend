@@ -18,17 +18,10 @@ function Main() {
   const [searchTab, setSearchTab] = useState("current");
   const [addressInput, setAddressInput] = useState("");
   const [searchError, setSearchError] = useState("");
+  
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState('');
-  useEffect(() => {
-    const storedUserId = sessionStorage.getItem("currentUserId");
-
-    if (storedUserId) {
-        setIsLoggedIn(true);
-        setUserId(storedUserId); // 상태에 아이디 저장
-    }
-  }, []);
-
+  
   const [isServerOnline, setIsServerOnline] = useState(null);
 
   const [messages, setMessages] = useState([
@@ -45,6 +38,13 @@ function Main() {
   // 초기 로딩: 세션 초기화 + 서버 상태 체크
   // ─────────────────────────────
   useEffect(() => {
+    
+    const storedUserId = sessionStorage.getItem("currentUserId");
+    if (storedUserId) {
+        setIsLoggedIn(true);
+        setUserId(storedUserId);
+    }
+
     // ✅ 페이지 새로고침 시 챗봇 세션 초기화
     localStorage.removeItem("chatSessionId");
 
