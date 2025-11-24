@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./main.css";
 import { askChat } from "./chat";
+import { logout } from './authApi';
 
 const API_BASE_URL = "http://localhost:5000";
 
@@ -17,6 +18,17 @@ function Main() {
   const [searchTab, setSearchTab] = useState("current");
   const [addressInput, setAddressInput] = useState("");
   const [searchError, setSearchError] = useState("");
+  
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useState('');
+  useEffect(() => {
+    const storedUserId = sessionStorage.getItem("currentUserId");
+
+    if (storedUserId) {
+        setIsLoggedIn(true);
+        setUserId(storedUserId); // 상태에 아이디 저장
+    }
+  }, []);
 
   const [isServerOnline, setIsServerOnline] = useState(null);
 
@@ -52,6 +64,22 @@ function Main() {
 
     checkServerStatus();
   }, []);
+  
+  const handleLogout = async () => {
+    try {
+        await logout(); 
+        
+        sessionStorage.removeItem("currentUserId");
+        
+        setIsLoggedIn(false);
+        setUserId('');
+        alert("로그아웃 되었습니다.");
+        navigate('/'); 
+
+    } catch (error) {
+        console.error("로그아웃 실패:", error);
+    }
+  };
 
   // 메시지 변경 시 챗봇 영역 자동 스크롤
   useEffect(() => {
@@ -275,13 +303,34 @@ function Main() {
             ></div>
           </div>
           <nav className="nav-links">
-            <Link to="/me">내 정보</Link>
-            <Link to="/login" className="btn-link">
-              로그인
-            </Link>
-            <Link to="/register" className="btn-primary-outline">
-              회원가입
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link to="/me" style={{ marginRight: '10px' }}>내 정보</Link>
+                <span style={{ fontWeight: 'bold', color: '#0073e6', marginRight: '10px' }}>
+                    {userId}님
+                </span>
+                <button 
+                    onClick={handleLogout}
+                    style={{ 
+                        background: 'transparent', 
+                        border: 'none', 
+                        cursor: 'pointer', 
+                        fontSize: '1rem', 
+                        color: '#333',
+                        padding: 0
+                    }}
+                >로그아웃</button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="btn-link">
+                  로그인
+                  </Link>
+                <Link to="/register" className="btn-primary-outline">
+                  회원가입
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>
