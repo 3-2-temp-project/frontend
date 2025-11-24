@@ -20,7 +20,7 @@ function Review() {
   // ─────────────────────────────
   // 초기 데이터 로딩
   //   1) restaurant_info (마커 목록에서 해당 res_id 찾기)
-  //   2) 리뷰 목록 (/reviews/reviews/restaurant/<id>)
+  //   2) 리뷰 목록 (GET /reviews/restaurant/<id>)
   // ─────────────────────────────
   useEffect(() => {
     const resId = Number(id);
@@ -50,9 +50,9 @@ function Review() {
           );
         }
 
-        // 2. 리뷰 목록: GET /reviews/reviews/restaurant/<res_id>
+        // 2. 리뷰 목록: GET /reviews/restaurant/<res_id>
         const reviewRes = await fetch(
-          `${API_BASE}/reviews/reviews/restaurant/${resId}`,
+          `${API_BASE}/reviews/restaurant/${resId}`,
           {
             method: "GET",
             credentials: "include",
@@ -79,8 +79,9 @@ function Review() {
 
   // ─────────────────────────────
   // 리뷰 등록
-  //   POST /reviews/reviews
-  //   body: { res_id, user_id, rating, content }
+  //   POST /reviews
+  //   body: { res_id, rating, content }
+  //   (user_id는 백엔드에서 세션으로 처리)
   // ─────────────────────────────
   const handleSubmit = async () => {
     if (!content.trim()) {
@@ -100,13 +101,13 @@ function Review() {
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(`${API_BASE}/reviews/reviews`, {
+      const response = await fetch(`${API_BASE}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
           res_id: resId,
-          user_id: userNum,  // ⭐ 로그인한 사용자로 자동 처리
+          // user_id는 보내지 않아도 됨 (서버에서 세션 기반으로 덮어씀)
           rating,
           content,
         }),

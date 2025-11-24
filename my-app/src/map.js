@@ -158,7 +158,7 @@ function Map() {
       let reviewTotal = 0;
       try {
         const reviewRes = await apiGet(
-          `/reviews/reviews/restaurant/${detail.res_id}?page=1&per_page=3&order=recent`
+          `/reviews/restaurant/${detail.res_id}?page=1&per_page=3&order=recent`
         );
         const rdata = reviewRes.data || reviewRes; // {items, total, ...}
         reviewItems = rdata.items || [];
